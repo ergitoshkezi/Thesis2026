@@ -1,0 +1,18 @@
+# Virtual environment
+Include/
+Lib/
+Scripts/
+share/
+pyvenv.cfg
+__pycache__/
+
+# Build artifacts
+Log_Parser_Ultimate/
+Log_Parser_Ultimate.build/
+build/
+
+# Large files (exceeds GitHub 100MB limit)
+Log_Parser_Ultimate.zip
+
+# Exclude for now
+Log_Parser_Ultimate.py
