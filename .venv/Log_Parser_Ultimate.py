@@ -31,7 +31,7 @@ from log_tree_view import LogTreeView
 # ══════════════════════════════════════════════════════════════════════
 
 CONFIG_FILE = "config.json"
-DEFAULT_API_KEY = "SIAK-qFpdpe9lWgR6DKm60mbDjchce97f70a13"
+DEFAULT_API_KEY = os.getenv("SIEMENS_API_KEY", "")
 
 
 def load_config():
@@ -60,8 +60,14 @@ if __name__ == "__main__":
     root.withdraw()  # Hide main window initially
 
     if not stored_api_key:
-        user_api_key = simpledialog.askstring("API Key", "Enter API Key (leave blank for default):", parent=root)
+        prompt_msg = "Enter API Key:" if not DEFAULT_API_KEY else f"Enter API Key (leave blank to use env var):"
+        user_api_key = simpledialog.askstring("API Key", prompt_msg, parent=root)
+        
         api_key = user_api_key if user_api_key else DEFAULT_API_KEY
+        
+        if not api_key:
+            messagebox.showerror("Error", "No API Key provided. Exiting...")
+            sys.exit()
 
         if user_api_key:
             save_as_default = tk.BooleanVar(value=False)
