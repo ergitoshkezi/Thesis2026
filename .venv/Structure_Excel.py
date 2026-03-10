@@ -1,29 +1,54 @@
-from nltk.tokenize import word_tokenize
-from datetime import datetime
-from bs4 import BeautifulSoup
-import sys
-import chardet
-import xml.etree.ElementTree as ET
+"""
+Structure Excel — Transaction Log Batch Analyser
+==================================================
+
+Reads all log files in a selected directory, extracts key transaction
+metrics (start/end timestamps, duration, thread ID, virtual page,
+biggest time gap, exception descriptions, CDO count), and writes an
+Excel overview (_Overview.xlsx) summarising every transaction.
+
+Used as a companion module for Log_Parser_Ultimate.
+
+Author : Ergito Shkëzi
+Project: Master's Thesis 2026
+"""
+
+# ──────────────────────────────────────────────────────────────────────
+# Standard Library
+# ──────────────────────────────────────────────────────────────────────
 import os
-import pandas as pd
 import re
+import sys
+import xml.etree.ElementTree as ET
+from datetime import datetime
 from pathlib import Path
-import mmap
-from colorama import Fore, Style
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
+
+# ──────────────────────────────────────────────────────────────────────
+# Third-Party Libraries
+# ──────────────────────────────────────────────────────────────────────
+import chardet
+import mmap
+import pandas as pd
+from bs4 import BeautifulSoup
+from colorama import Fore, Style
+from nltk.tokenize import word_tokenize
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QProgressDialog, QApplication
+from PyQt6.QtWidgets import QApplication, QProgressDialog
 
 
 # Change the recursion limit
-#sys.setrecursionlimit(50000000)
-#print(sys.getrecursionlimit())
 
+
+# ══════════════════════════════════════════════════════════════════════
+#  Utility & State-Management Helpers
+# ══════════════════════════════════════════════════════════════════════
 
 
 def check_pattern(input_string):
-    pattern = r'\d{14}\.\d{3}'  # Define the pattern using regex
+    """Return True if *input_string* matches the timestamp pattern YYYYMMDDHHMMSS.SSS."""
+    pattern = r'\d{14}\.\d{3}'
     if re.fullmatch(pattern, input_string):
         return True
     else:
@@ -32,7 +57,7 @@ def check_pattern(input_string):
 
 
 def thread(token):
-        
+    """Record the thread ID from *token* and track unique threads."""
     overview.append(token[1])
 
     already_there=False
@@ -50,20 +75,20 @@ def thread(token):
 
 
 def delta_txn():
+    """Return the transaction duration (finish – start)."""
     return (finish_txn-start_txn)
 
 
 
 
-
 def time_array(start,end,index_position,tip):
-  
+    """Append index position to the global index list."""
     index.append(index_position)   
 
 
 
-
 def start_time(start):
+    """Set the global transaction start timestamp."""
 
     global start_txn
     start_txn=start
@@ -71,62 +96,57 @@ def start_time(start):
 
 
 
-
-
 def start_counter_chart(value):
+    """Initialise the chart counter."""
     global counterchart
     counterchart=value
 
 
 
-
-
 def counter_chart_update(value):
-     global counterchart
-     counterchart +=value
+    """Increment the chart counter by *value*."""
+    global counterchart
+    counterchart +=value
 
     
 
 
-
 def finish_time(finish):
+    """Set the global transaction finish timestamp."""
 
     global finish_txn
     finish_txn=finish
    
 
 
-
-
 def modify_Response(val):
+    """Toggle the global Response flag."""
     global Response
     Response=val
 
 
 
-
-
-
 def modify_Request(val):
+    """Toggle the global Request flag."""
     global Request
     Request=val
 
 
-            
-
-
-
 def convert_to_string(char_list):
+    """Join a list of characters into a single string."""
     result = ""
     for char in char_list:
         result += char
     return result
 
 
-
+# ══════════════════════════════════════════════════════════════════════
+#  XML Document I/O
+# ══════════════════════════════════════════════════════════════════════
 
 
 def print_List_xml_Response(doc):
+    """Prettify and save the XML Response Document to disk."""
     current_directory = os.getcwd()
     tree = ET.XML(BeautifulSoup(convert_to_string(doc), "xml").prettify())
     if not os.path.exists(IR):
@@ -138,13 +158,8 @@ def print_List_xml_Response(doc):
     os.chdir(current_directory)
 
 
-
-
-
-
-
-
 def print_List_xml(doc):
+    """Prettify and save the XML Request Document to disk."""
     current_directory = os.getcwd()
     # Prettify the XML
     tree = ET.XML(BeautifulSoup(convert_to_string(doc), "xml").prettify())
@@ -157,13 +172,8 @@ def print_List_xml(doc):
     os.chdir(current_directory)
 
 
-
-
-
-
-
-
 def is_number(string):
+    """Check if *string* is a numeric timestamp (18-character int or float)."""
     try:
         int_value = int(string)  # Check if it's a valid integer
         if len(int_value) == 18:
@@ -183,20 +193,19 @@ def is_number(string):
             return False
 
 
-
-
-
-
 def tokenize(text):
+    """Return a list of word tokens from *text*."""
     tokens = word_tokenize(text)
     return tokens
 
 
-
-
+# ══════════════════════════════════════════════════════════════════════
+#  Transaction Parsing & Analysis
+# ══════════════════════════════════════════════════════════════════════
 
 
 def start(token,i):
+    """Parse the transaction-start line and record timestamps, user, and virtual page."""
 
     if(is_number(token[0])):
 
@@ -219,12 +228,8 @@ def start(token,i):
         overview.append("Null")
         
 
-
-
-
-
-
 def end(token):
+    """Parse the transaction-end line and record the finish timestamp."""
 
     if(is_number(token[0])):
        
@@ -238,10 +243,9 @@ def end(token):
     else:
         overview.append("Null")
         
-   
-
 
 def xml_Request_funzionante(tokens, position, row_index, document_xml):
+    """Walk through log lines to build the Request Document XML."""
     while row_index < len(lines_list):
         if not is_number(tokens[position]):
             document_xml.extend(tokens[position:])
@@ -253,12 +257,8 @@ def xml_Request_funzionante(tokens, position, row_index, document_xml):
             return row_index - 1
 
 
-
- # Only return lines that are not empty
-
-
-
 def read_lines_list(filename):
+    """Read all non-empty lines from a file with automatic encoding detection."""
     file_size = Path(filename).stat().st_size
     
     # For very small files, use direct reading
@@ -284,10 +284,8 @@ def read_lines_list(filename):
                    mm.read().decode(encoding).splitlines() if line.strip()]
 
 
-
-
-
 def Xml_Response(tokens_of_row,position,row_index_log,document_xml):
+    """Recursively build the Response Document XML from tokenised log rows."""
     
     for i in range(position, len(tokens_of_row)):
         # print(line_gap.split('\t')[0])
@@ -308,12 +306,9 @@ def Xml_Response(tokens_of_row,position,row_index_log,document_xml):
 
 
 
-
-
 def Time_stamp(token):
-    #codifica del token con lo standart time 
-    # r
-     if(is_number(token)):
+    """Convert a raw timestamp token to a formatted date-time string."""
+    if(is_number(token)):
 
         dt = datetime.strptime(token, "%Y%m%d%H%M%S.%f")
 
@@ -321,9 +316,8 @@ def Time_stamp(token):
 
 
 
-
-
 def time_chart(token):
+    """Parse a raw timestamp token into a datetime object for charting."""
 
     dt = datetime.strptime(token, "%Y%m%d%H%M%S.%f")
 
@@ -331,10 +325,8 @@ def time_chart(token):
 
 
 
-
-
-
 def gap_time(token,index):
+    """Track the biggest time gap between consecutive timestamps."""
      
     
     global line_one
@@ -365,9 +357,8 @@ def gap_time(token,index):
         
 
 
-
-
 def Analyse(token_of_row,row_index_log):
+    """Analyse a tokenised log row — dispatch to parsers (XML, transaction, depth)."""
     
     global ERROR
     global Description
@@ -430,8 +421,8 @@ def Analyse(token_of_row,row_index_log):
             
 
             
-
 def Error_Description(row):
+    """Extract the error description text starting from the 'Description' token."""
     global Description
     
     for i, item in enumerate(row):
@@ -440,9 +431,13 @@ def Error_Description(row):
             break
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  Excel Output
+# ══════════════════════════════════════════════════════════════════════
+
 
 def optimize_overview():
-   
+    """Pad or truncate the overview list to exactly 12 elements."""
 
     if len(overview) < 12:
         for i in range (len(overview), 12):
@@ -453,9 +448,8 @@ def optimize_overview():
         # Delete elements starting from the 13th index onwards
 
 
-
 def append_to_excel():
-   
+    """Append the current transaction overview row to _Overview.xlsx."""
 
     #optimize_overview()
 
@@ -481,6 +475,7 @@ def append_to_excel():
        
 
 def convert_time_of_reff_line(line):
+    """Convert the leading raw timestamp of *line* to human-readable format."""
     parts = re.split(r'(\s+)', line, maxsplit=1)  # Split only at the first space/tab
     if parts:
         t = Time_stamp(parts[0])  # Convert only the first element
@@ -488,12 +483,13 @@ def convert_time_of_reff_line(line):
     return ''.join(parts)
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  Main Entry Point
+# ══════════════════════════════════════════════════════════════════════
 
-
-# MAIN:
 
 def main():
-    #init()  # Initialize colorama
+    """Batch-process all .txt/.log files in a user-selected folder."""
 
     global IR, lines_list, path, index, Threads, error_line_number, ERROR, Description, Time_podium, Total_CDO, Gap, line_one, line_two, line_gap, Dir, file_counter, overview, ProcessID
 
@@ -651,6 +647,4 @@ def main():
     
 
 if __name__ == '__main__':
-    main()
-#### Fine parser
-##commando per creare .exe : python -m auto_py_to_exe
+    main()
