@@ -1,0 +1,11 @@
+datavases.db
+*.db
+.env
+__pycache__/
+.venv/
+venv/
+.DS_Store
+.Core/
+poppler-*/
+Analysed_PDFs/
+key/
