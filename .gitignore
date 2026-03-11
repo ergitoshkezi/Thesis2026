@@ -7,3 +7,13 @@ venv/
 .DS_Store
 poppler-*/
 key/
+
+# Exclude .Core virtual environment dependencies and databases
+.Core/Lib/
+.Core/Scripts/
+.Core/Include/
+.Core/share/
+.Core/etc/
+.Core/*.db
+.Core/**/__pycache__/
+.Core/ChatBox.build/
