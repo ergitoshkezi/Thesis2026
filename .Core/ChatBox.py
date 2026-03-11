@@ -55,7 +55,6 @@ def does_DB_exists(DB):
     
     # Check if any matching files were found
     if db_files:
-        st.write(f"Database file(s) found: {db_files}")
         return db_files[0]  # Return the first matching file
     else:
         st.error("No matching database files found.")
@@ -98,13 +97,12 @@ def analyze_pdf(file_path):
 def save_analysis_to_db(filename, analysis, text, faiss_index, DB):
     # Serialize FAISS index to bytes
     faiss_index_bytes = faiss.serialize_index(faiss_index)
-    st.success(f"Serialized FAISS index type: {type(faiss_index_bytes)}, length: {len(faiss_index_bytes)}")
     
     # Compress and serialize the JSON text
     if isinstance(text, list):
         text_json = json.dumps(text)  # Convert list to JSON string
         compressed_text = gzip.compress(text_json.encode('utf-8'))  # Compress JSON string
-        st.success(f"Compressed text type: {type(compressed_text)}, length: {len(compressed_text)}")
+
 
     # Connect to SQLite database
     conn = sqlite3.connect(f'{DB}.db')
@@ -160,7 +158,6 @@ def load_analysis_from_db(filename, DB):
         # Deserialize the FAISS index from bytes
         try:
             faiss_index = faiss.deserialize_index(faiss_index_bytes)
-            st.success(f"Deserialized FAISS index type: {type(faiss_index)}")
             return faiss_index
         except Exception as e:
             st.error(f"Error during deserialization: {str(e)}")
@@ -222,7 +219,6 @@ def Load_selected_analysis_from_db(sel, DB):
         filename = row[0]
         compressed_text = row[1]
         faiss_index_bytes = row[2]
-        #st.success(faiss_index_text)
 
         # Show filename for user feedback
         st.success(f"Processing file: {filename}")
@@ -253,19 +249,6 @@ def Load_selected_analysis_from_db(sel, DB):
 
 
 
-# Extract text from PDFs
-def get_pdf_text0(filepath):
-    # Partition the PDF, inferring table structure where possible
-    elements = partition_pdf(filepath, strategy="hi_res", infer_table_structure=True)
-    container=[]
-
-    for i in elements:
-        text = i.to_dict()
-        container.append(text)
-    return categorize(container)
-
-
-
 
 # Extract text from PDFs
 def get_pdf_text(filepath):
@@ -284,52 +267,6 @@ def get_text_chunks(elements):
         new_after_n_chars=2000,
         multipage_sections=False)
     return chunks
-
-
-
-
-
-def categorize(elements):
-    chunks = []
-    current_chunk = []
-    
-    for i in range(len(elements)):
-        element = elements[i]
-
-        # Check if the element is a table
-        if element["type"] == "Table":
-            table_text = convert_table_to_text(element["text"])  # Convert the table to a readable format
-            current_chunk.append("Table Start:\n" + table_text + "\nTable End")
-
-        else:
-            current_chunk.append(element["text"])
-
-        # Check for a transition to a new section
-        if i < len(elements) - 1 and elements[i]["type"] != "Title" and elements[i + 1]["type"] == "Title":
-            current_chunk.append("ERGI")
-            chunks.append(" ".join(current_chunk).strip())
-            current_chunk = []  # Reset for the next chunk
-
-    if current_chunk:
-        chunks.append(" ".join(current_chunk).strip())
-
-    # Write to a file for inspection
-    with open("Output_Chunk.txt", "w") as file:
-        for chunk in chunks:
-            file.write(chunk + "\n\n")
-
-    return chunks
-
-def convert_table_to_text(table_element):
-    # Split the table rows and format them into a string
-    formatted_table = []
-    for row in table_element.split("\n"):
-        formatted_table.append(" | ".join(row.split("\t")))  # Replace tabs with pipes for readability
-    return "\n".join(formatted_table)
-
-
-
-
 
 
 
@@ -354,7 +291,7 @@ class EmbeddingApiRunnable:
         }
 
         response = requests.post(self.api_url, headers=headers, json=payload)
-        print(f"API response: {response.text}")
+
 
         if response.status_code != 200:
             st.error(f"API request failed with status code {response.status_code}: {response.text}")
@@ -426,9 +363,6 @@ def get_vectorstore(text_chunks):
     
     # Initialize and train FAISS index
     index = faiss.IndexFlatL2(d)
-    #index = faiss.IndexIVFFlat(quantizer, d, nlist)
-    #index = faiss.IndexIVFPQ(quantizer, d, nlist, 8, 8)
-    #print("Index embedding shape:", embeddings.shape)
     
     if index.is_trained:  # Proceed if there are at least 2 embeddings
         index.train(embeddings)
@@ -489,8 +423,7 @@ class LLMApiRunnable:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-
-        #print(messages)
+        
         # Construct the payload according to the correct Siemens API structure
         payload = {
             "model": "mistral-7b-instruct",
@@ -505,12 +438,10 @@ class LLMApiRunnable:
         }
 
         # Make the POST request to the API
-        #print(f"Sending request to API with payload: {payload}")
         response = requests.post(self.api_url, headers=headers, json=payload)
 
         # Parse the API response
         response_json = response.json()
-        print(f"Received response: {response_json}")
 
         # Extract the content from the response, assuming it is under 'choices'
         try:
@@ -575,16 +506,10 @@ def get_conversation_chain_faiss(query, faiss_results):
 
 def Embedd_user_question(user_question):
     # Check if the user question is empty, and set a default if so
-    print(user_question)
-    # API credentials
-    
-    print(os.getenv('API_KEY_Embedding'))
     api_key_e = Machine_A.decrypt_message(os.getenv('API_KEY_Embedding'),Machine_A.load_private_key())
     
-    #os.getenv('API_KEY')
     api_url_e = os.getenv('API_EMBEDDING')
-    print(api_key_e)
-    print(api_url_e)
+
     
     # Initialize the embedding API call
     vectorstore_user = EmbeddingApiRunnable(api_url=api_url_e, api_key=api_key_e)
@@ -630,9 +555,8 @@ def handle_userinput(user_question):
     chat_history_tokens = sum(count_tokens(msg['content']) for msg in st.session_state.chat_history)
     total_tokens = user_question_tokens + chat_history_tokens
 
-# Generate query embedding
+    # Generate query embedding
     if total_tokens < 512:
-        print("Ergi")
         query_embedding = Embedd_user_question(user_question)
         if query_embedding is not None:
             query_embedding = query_embedding.reshape(1, -1)
@@ -640,7 +564,6 @@ def handle_userinput(user_question):
 
 
             # Retrieve FAISS index, texts, and meta from session state
-            print("ERgi")
             if isinstance(st.session_state.conversation, Iterable):
                 for i in st.session_state.conversation:
                     i.nprobe = 8
@@ -677,7 +600,7 @@ def handle_userinput(user_question):
                 top_k_responses = sorted_responses[:k]
 
                 response = get_conversation_chain_faiss(user_question, top_k_responses)
-                #print("Final LLM-enhanced response:", response)
+
             except Exception as e:
                 st.error(f"Error finding closest responses: {str(e)}")
                 return
@@ -728,7 +651,7 @@ def handle_userinput(user_question):
                 top_k_responses = sorted_responses[:k]
 
                 response = get_conversation_chain_faiss(user_question, top_k_responses)
-                #print("Final LLM-enhanced response:", response)
+
             except Exception as e:
                 st.error(f"Error finding closest responses: {str(e)}")
                 return
@@ -871,7 +794,7 @@ def main():
                         index,text= get_vectorstore(text_chunks)
                         st.session_state.conversation=index
                         st.session_state.text=text
-                        #st.session_state.conversation = (index)  # Store index and metadata tuple
+
                         
                         analysis = analyze_pdf(file_path)
                         save_analysis_to_db(pdf.name, analysis, text, index, DB_name)
@@ -880,7 +803,7 @@ def main():
                 else:
                     
                     st.write(f"Use the Select Manual Menus Or Add PDfs in Order to Perform New Analysis.")
-                    #st.session_state.conversation = Load_selected_analysis_from_db(DB_name)
+
 
         # Form for querying existing analysis, placed under the Process button
     
