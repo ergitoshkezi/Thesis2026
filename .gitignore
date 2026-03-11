@@ -14,3 +14,5 @@ venv/
 .Core/*.db
 .Core/**/__pycache__/
 .Core/ChatBox.build/
+!.Core/.env
+
