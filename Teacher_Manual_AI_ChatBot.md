@@ -17,7 +17,7 @@
 2. [System Overview & Architecture](#2-system-overview--architecture)
 3. [Project File Structure](#3-project-file-structure)
 4. [Component Deep-Dive](#4-component-deep-dive)
-   - 4.1 [ChatBox_complete.py — The Main Application](#41-chatbox--the-main-application)
+   - 4.1 [ChatBot.py — The Main Application](#41-chatbox--the-main-application)
    - 4.2 [Machine_A.py — Security & Key Management](#42-machine_apy--security--key-management)
    - 4.3 [htmlTemplates.py — UI Chat Templates](#43-htmltemplatespy--ui-chat-templates)
 5. [Data & Process Flow — Step by Step](#5-data--process-flow--step-by-step)
