@@ -134,7 +134,7 @@ AI_Chatbot/
 
 ## 4. Component Deep-Dive
 
-### 4.1 `ChatBox_complete.py` — The Main Application
+### 4.1 `ChatBot.py` — The Main Application
 
 This is the central file of the project. It is structured into:
 
