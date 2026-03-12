@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Siemens Transaction Log Parser — Technical Manual</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.6; color: #1a1a1a; max-width: 900px; margin: 0 auto; padding: 40px; }
+  h1 { font-size: 22pt; color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 40px; }
+  h2 { font-size: 16pt; color: #003366; border-bottom: 1.5px solid #aac4e0; padding-bottom: 4px; margin-top: 36px; }
+  h3 { font-size: 13pt; color: #1a4a80; margin-top: 24px; }
+  h4 { font-size: 11pt; color: #2a5a90; margin-top: 18px; font-weight: bold; }
+  .cover { text-align: center; padding: 80px 0 60px 0; border-bottom: 2px solid #003366; margin-bottom: 40px; }
+  .cover h1 { font-size: 28pt; border: none; }
+  .cover .subtitle { font-size: 14pt; color: #555; margin-top: 8px; }
+  .cover .meta { font-size: 11pt; color: #777; margin-top: 30px; line-height: 2; }
+  pre, code { font-family: Consolas, 'Courier New', monospace; font-size: 9.5pt; background: #f4f7fa; border: 1px solid #d0dcea; border-radius: 4px; }
+  pre { padding: 14px 18px; overflow-x: auto; white-space: pre-wrap; line-height: 1.5; }
+  code { padding: 1px 5px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 10.5pt; }
+  th { background: #003366; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
+  td { padding: 7px 12px; border-bottom: 1px solid #dde6f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f8fc; }
+  .toc { background: #f0f5fb; border: 1px solid #c5d8ee; border-radius: 6px; padding: 20px 28px; margin: 30px 0; }
+  .toc h2 { border: none; margin-top: 0; font-size: 14pt; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 4px 0; }
+  .note { background: #fffbe6; border-left: 4px solid #f0b429; padding: 10px 16px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+  ul li, ol li { margin: 4px 0; }
+  @media print { body { padding: 0; max-width: 100%; } pre { page-break-inside: avoid; } h2 { page-break-after: avoid; } }
+</style>
+</head>
+<body>
+<div class="cover">
+  <h1>Siemens Transaction Log Parser</h1>
+  <div class="subtitle">Technical Manual — Thesis Project Documentation</div>
+  <div class="meta"><strong>Author:</strong> Student Thesis Project<br><strong>Date:</strong> March 2026<br><strong>Files Covered:</strong> <code>Log_Parser_Ultimate.py</code> &nbsp;·&nbsp; <code>Structure_Excel.py</code></div>
+</div>
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li>Project Overview</li><li>System Architecture</li><li>Technology Stack &amp; Dependencies</li><li>Log File Format Explained</li><li>Module 1 — Structure_Excel.py</li><li>Module 2 — Log_Parser_Ultimate.py</li><li>Complete Data Flow</li><li>AI Integration — SiemensGPT</li><li>File Comparison Engine</li><li>XML &amp; JSON Analysis Pipeline</li><li>Excel Report Generation</li><li>Performance Optimizations</li><li>User Interface Reference</li><li>Keyboard Shortcuts</li><li>Error Handling Strategy</li><li>Output Files Produced</li><li>Application Entry Point &amp; Configuration</li><li>Design Decisions &amp; Technical Rationale</li>
+  </ol>
+</div>
+<h2>1. Project Overview</h2>
+<p>This thesis project is a specialized software tool designed to parse, visualize, and analyze Siemens enterprise system transaction logs. These logs are produced by a Siemens proprietary runtime environment and record the execution of business transactions involving:</p>
+<ul>
+  <li><strong>CDOs (Configurable Data Objects)</strong> — reusable business object definitions</li>
+  <li><strong>CLFs (Custom Logic Functions)</strong> — custom code modules implementing business rules</li>
+  <li><strong>XML Request/Response documents</strong> — the input/output data of each transaction</li>
+</ul>
+<p>The problem being solved is that raw Siemens log files are very large (often hundreds of megabytes), difficult to read due to timestamp encoding and nested depth levels, impossible to compare visually when debugging transaction differences, and time-consuming to analyze manually for performance bottlenecks. The tool provides automated parsing, visual tree representation, AI-assisted analysis, cross-file comparison, and Excel-based reporting — all within a desktop GUI application.</p>
+
+<h2>2. System Architecture</h2>
+<pre>┌────────────────────────────────────────────────────────────┐
+│                  USER INTERACTION LAYER                    │
+│         LogTreeView GUI  (tkinter + PyQt6 dialogs)         │
+└──────────────┬─────────────────────────┬───────────────────┘
+               │                         │
+               ▼                         ▼
+┌─────────────────────────┐   ┌──────────────────────────────┐
+│  LOG PARSING ENGINE     │   │  ANALYSIS & EXPORT ENGINE    │
+│  parse_log()            │   │  Structure_Excel.main()       │
+│  read_lines_list_XML()  │   │  append_to_excel()           │
+│  read_lines_list()      │   │  Analyse() / gap_time()      │
+└──────────┬──────────────┘   └──────────┬───────────────────┘
+           │                             │
+           ▼                             ▼
+┌─────────────────────────┐   ┌──────────────────────────────┐
+│  COMPARISON ENGINE      │   │  XML / JSON ANALYSIS         │
+│  compare_()             │   │  create_xml_file()            │
+│  tokenize()             │   │  Analyze_XML()               │
+│  find_matching_sublists()│  │  show_XML_TreeView()         │
+└──────────┬──────────────┘   └──────────┬───────────────────┘
+           │                             │
+           ▼                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│               AI LAYER — SiemensGPT                         │
+│         LLMApiRunnable → Mistral-7B-Instruct               │
+│         SiemensGPT() / compareGPT() / Resume_GPT()         │
+└─────────────────────────────────────────────────────────────┘</pre>
+<table>
+  <tr><th>File</th><th>Role</th><th>Lines</th></tr>
+  <tr><td><code>Structure_Excel.py</code></td><td>Batch processor — scans a whole folder of log files and generates an Excel summary</td><td>656</td></tr>
+  <tr><td><code>Log_Parser_Ultimate.py</code></td><td>Main GUI application — opens, visualizes, searches, compares, and AI-analyzes individual log files</td><td>3,677</td></tr>
+</table>
+
+<h2>3. Technology Stack &amp; Dependencies</h2>
+<table>
+  <tr><th>Library</th><th>Purpose</th></tr>
+  <tr><td><code>tkinter / ttk</code></td><td>Primary desktop GUI framework (tree views, text areas, dialogs)</td></tr>
+  <tr><td><code>PyQt6</code></td><td>Progress dialog windows (QProgressDialog) shown during long operations</td></tr>
+  <tr><td><code>pandas / openpyxl</code></td><td>Reading and writing the Excel overview report <code>_Overview.xlsx</code></td></tr>
+  <tr><td><code>matplotlib</code></td><td>Time chart visualization (cumulative/derivative time plots)</td></tr>
+  <tr><td><code>chardet</code></td><td>Automatic encoding detection for log files (UTF-8, Latin-1, etc.)</td></tr>
+  <tr><td><code>nltk (word_tokenize)</code></td><td>Tokenizing log lines for comparison and AI chunking</td></tr>
+  <tr><td><code>requests</code></td><td>HTTP calls to the Siemens LLM API endpoint</td></tr>
+  <tr><td><code>lxml / xml.etree</code></td><td>Parsing XML response documents extracted from logs</td></tr>
+  <tr><td><code>xml.dom.minidom</code></td><td>Pretty-printing XML output files</td></tr>
+  <tr><td><code>BeautifulSoup</code></td><td>Cleaning and prettifying raw XML before parsing</td></tr>
+  <tr><td><code>re</code></td><td>Regular expressions for timestamp detection, pattern matching</td></tr>
+  <tr><td><code>asyncio / threading</code></td><td>Asynchronous XML file creation without blocking the GUI</td></tr>
+  <tr><td><code>mmap</code></td><td>Memory-mapped file reading for very large log files (&gt;1MB)</td></tr>
+  <tr><td><code>json</code></td><td>Reading/writing tree analysis cache files</td></tr>
+  <tr><td><code>colorama</code></td><td>Colored terminal output during batch processing</td></tr>
+  <tr><td><code>collections.defaultdict / deque</code></td><td>Efficient stack-based tree building during log parsing</td></tr>
+</table>
+
+<h2>4. Log File Format Explained</h2>
+<h3>4.1 Transaction Section</h3>
+<pre>YYYYMMDDHHMMSS.mmm  &lt;ThreadID&gt;  Depth: &lt;N&gt;  CDO: &lt;Name&gt;  &lt;Operation&gt;: &lt;Value&gt;</pre>
+<p><strong>Example:</strong></p>
+<pre>20240315143022.123  0x12A4  Depth: 2  CDO: OrderService  Perform: CreateOrder  Exec: validateInput  param1 = "ABC",  resolved value = ( "ABC" )</pre>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td><code>YYYYMMDDHHMMSS.mmm</code></td><td>Timestamp — 14 digits + 3 millisecond digits</td></tr>
+  <tr><td>ThreadID</td><td>Hex identifier of the execution thread</td></tr>
+  <tr><td>Depth: N</td><td>Nesting depth of the CDO/CLF call stack</td></tr>
+  <tr><td>CDO: Name</td><td>The Configurable Data Object being called</td></tr>
+  <tr><td>Operation</td><td>Type of action (Perform, Field, Exec, etc.)</td></tr>
+  <tr><td>Leaving Depth: N</td><td>Marks the end of a nested operation at depth N</td></tr>
+</table>
+<h3>4.2 Request Document Section</h3>
+<p>Begins with <em>"Request Document"</em> and ends at <em>"starting transaction"</em>. Contains the XML payload sent to trigger the transaction. The parser skips this section for the tree view but can extract and save it to a separate XML file.</p>
+<h3>4.3 Response Document Section</h3>
+<p>Begins with <em>"Response Document"</em> and contains the XML result. The parser can extract this for XML timing analysis.</p>
+<h3>4.4 State Machine for Parsing</h3>
+<pre>state = {
+    'in_request_document': False,
+    'in_transaction': False
+}</pre>
+<p>This ensures lines inside a transaction body are parsed and added to the tree, XML sections are separated and saved to their own files, and non-transaction lines are silently skipped.</p>
+
+<h2>5. Module 1 — Structure_Excel.py (Batch Analyzer)</h2>
+<h3>5.1 Purpose</h3>
+<p><code>Structure_Excel.py</code> is the batch analysis module. It processes an entire folder of <code>.txt</code> or <code>.log</code> files simultaneously and writes a single comprehensive Excel report named <code>_Overview.xlsx</code>.</p>
+<h3>5.2 Global Variables</h3>
+<table>
+  <tr><th>Variable</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>IR</code></td><td>str</td><td>Current file's internal reference (filename without extension)</td></tr>
+  <tr><td><code>lines_list</code></td><td>list</td><td>All lines of the currently processed log file</td></tr>
+  <tr><td><code>path</code></td><td>str</td><td>Directory path selected by the user</td></tr>
+  <tr><td><code>overview</code></td><td>list</td><td>Accumulates one row of data per file for Excel output</td></tr>
+  <tr><td><code>Threads</code></td><td>list</td><td>Thread IDs found in the current file</td></tr>
+  <tr><td><code>ERROR</code></td><td>bool</td><td>Whether an exception was detected</td></tr>
+  <tr><td><code>Description</code></td><td>str</td><td>Text of the detected exception</td></tr>
+  <tr><td><code>Gap</code></td><td>timedelta</td><td>The largest time gap found between consecutive log lines</td></tr>
+  <tr><td><code>line_one, line_two</code></td><td>datetime</td><td>Used in sliding-window gap calculation</td></tr>
+  <tr><td><code>line_gap</code></td><td>str</td><td>The actual log line where the biggest gap occurred</td></tr>
+  <tr><td><code>Total_CDO</code></td><td>int</td><td>Count of CDO depth entries in this transaction</td></tr>
+  <tr><td><code>Time_podium</code></td><td>list</td><td>Records transaction durations for ranking</td></tr>
+  <tr><td><code>ProcessID</code></td><td>str</td><td>Extracted from filename (third underscore-separated segment)</td></tr>
+</table>
+<h3>5.3 Function Reference</h3>
+<h4>main() — Entry Point</h4>
+<p>The main batch processing loop: opens a folder selector dialog, counts <code>.txt</code>/<code>.log</code> files to configure the progress bar, then for each file resets all globals, reads all lines with <code>read_lines_list()</code>, iterates line-by-line calling <code>Analyse()</code>, and commits results to Excel with <code>append_to_excel()</code>.</p>
+<h4>read_lines_list(filename) — Adaptive File Reader</h4>
+<p>Reads raw file content using one of two strategies: simple binary read + chardet decode for files under 1 MB, or <code>mmap</code> (memory-mapped file) for zero-copy reading on files 1 MB and above. Returns a list of non-empty stripped strings.</p>
+<h4>Analyse(token_of_row, row_index_log) — Core State Machine</h4>
+<pre>Analyse()
+ ├── "&lt;" + "?" → xml_Request_funzionante()  [start of XML Request]
+ ├── "starting" + "transaction" → start() + thread()
+ ├── "Depth" (not "Leaving") → Total_CDO += 1
+ ├── "Response" + "Document" → mark response section start
+ ├── "Request" + "Document" → mark request section start
+ ├── "deleting" + "transaction" → end() + delta_txn() + append gap tracking
+ ├── "EXCEPTION" / "csiXMLException" → ERROR = True
+ └── "Description" → Error_Description()</pre>
+<h4>gap_time(token, index) — Biggest Gap Tracker</h4>
+<p>Uses a two-pointer sliding window to find the maximum time gap between any two consecutive timestamped log lines. Identifies the line in the transaction where the system was "stuck" the longest — a critical performance diagnostic.</p>
+<h4>append_to_excel() — Excel Writer</h4>
+<p>Writes one row to <code>_Overview.xlsx</code> using pandas with openpyxl engine. Appends to an existing file or creates a new one with correct column headers.</p>
+<table>
+  <tr><th>Column</th><th>Source</th></tr>
+  <tr><td>File Name</td><td>Filename of the log</td></tr>
+  <tr><td>ProcessID</td><td>3rd segment of filename split by <code>_</code></td></tr>
+  <tr><td>ThreadID</td><td>Thread code from "starting transaction" line</td></tr>
+  <tr><td>Start Time</td><td>Formatted timestamp from transaction start</td></tr>
+  <tr><td>Virtual Page</td><td>Page name from "starting transaction" line</td></tr>
+  <tr><td>User</td><td>User name from "starting transaction" line</td></tr>
+  <tr><td>End Time</td><td>Formatted timestamp from "deleting transaction" line</td></tr>
+  <tr><td>Duration of TXN</td><td><code>finish_txn - start_txn</code></td></tr>
+  <tr><td>Exception</td><td>Exception description text or "Null"</td></tr>
+  <tr><td>Biggest Gap</td><td>Maximum consecutive time gap in the transaction</td></tr>
+  <tr><td>Line Reference</td><td>The actual log line where the biggest gap occurred</td></tr>
+  <tr><td>Total CDO</td><td>Number of CDO depth entries encountered</td></tr>
+</table>
+<h3>5.4 Batch Processing Flow Diagram</h3>
+<pre>main()
+ └─ for each .txt/.log file in folder:
+      ├─ reset all global variables
+      ├─ read_lines_list() → lines_list
+      ├─ for each line in lines_list:
+      │    ├─ tokenize(line) → token_of_row
+      │    └─ Analyse(token_of_row, i)
+      │         ├─ start() → overview[0..2] filled
+      │         ├─ gap_time() → updates Gap, line_gap
+      │         ├─ Total_CDO counter update
+      │         └─ end() → overview[5..6] filled, delta_txn computed
+      ├─ append exception info → overview[7]
+      ├─ append Gap → overview[8]
+      ├─ append line_gap → overview[9]
+      ├─ append Total_CDO → overview[10]
+      └─ append_to_excel() → write row to _Overview.xlsx</pre>
+
+<h2>6. Module 2 — Log_Parser_Ultimate.py (Interactive GUI Viewer)</h2>
+<h3>6.1 LLMApiRunnable Class</h3>
+<p>A minimal HTTP client for calling the Siemens LLM API at <code>https://api.siemens.com/llm/v1/chat/completions</code>. Posts a JSON payload with model <code>"mistral-7b-instruct"</code>, extracts <code>choices[0].message.content</code> from the response, and is callable directly via <code>__call__</code> delegation to <code>invoke()</code>.</p>
+<h3>6.2 Global Utility Functions</h3>
+<h4>split_text_no_overlap(text, max_tokens=7500)</h4>
+<p>Splits a text string into chunks of at most 7500 NLTK tokens, working from end to beginning, then reversing the result. This gives priority to the most recent (most relevant) log entries. Used by <code>SiemensGPT()</code>.</p>
+<h4>find_matching_sublists(file_, e, diff_rows)</h4>
+<p>An O(n + m) string matching algorithm using a dictionary. Marks each extra row as <code>[FOUND]</code> (content exists in the other file at a different position) or <code>[NOT FOUND]</code> (genuinely new content).</p>
+<h4>tokenize(file1, file2, row, diff_rows) — comparison version</h4>
+<p>Token-level diff for two log lines. Skips the first 3 tokens (timestamp, threadID, second token), removes structural noise (<code>=</code>, <code>:</code>), wraps changed tokens with <code>@@</code> for highlighting, and sets <code>flag=True</code> if all tokens differ.</p>
+<h3>6.3 LogTreeView Class</h3>
+<pre>class LogTreeView(tk.Tk):
+    def __init__(self, log_file, file): ...</pre>
+<h4>Layout Architecture</h4>
+<pre>LogTreeView (tk.Tk root)
+ ├── main_frame (tk.Frame, grid)
+ │    ├── buttons (row=0) — all toolbar buttons
+ │    │    └── Buttons_position (horizontal pack)
+ │    │         ├── tree_col1..5 — Open, SiemensGPT, Expand All, Expand Nodes, Close Nodes
+ │    │         └── log_col1..4 — Search Entry, Search/Next, XML Time, Compare, Time Chart
+ │    ├── tree_frame (row=1, col=0) — left panel
+ │    │    └── ttk.Treeview (3 columns: message, delta, CDO DeltaTime)
+ │    └── log_frame (row=1, col=1) — right panel
+ │         └── tk.Text (raw log display)
+ └── Synchronized scrollbar (syncs tree + text pane)</pre>
+<h4>Key Instance Variables</h4>
+<table>
+  <tr><th>Variable</th><th>Description</th></tr>
+  <tr><td><code>self.log_lines</code></td><td>List of all log lines with line numbers prepended</td></tr>
+  <tr><td><code>self.log_lines_compare</code></td><td>Same lines but WITHOUT line numbers (used for comparison)</td></tr>
+  <tr><td><code>self.delta</code></td><td>List of time deltas between consecutive timestamps</td></tr>
+  <tr><td><code>self.refference[0..4]</code></td><td>Top 5 largest time deltas (sorted descending)</td></tr>
+  <tr><td><code>self.ref_line[0..4]</code></td><td>The log lines corresponding to those top 5 deltas</td></tr>
+  <tr><td><code>self.response</code></td><td>The XML Response Document lines</td></tr>
+  <tr><td><code>self.expanded_levels</code></td><td>Current tree expansion depth level counter</td></tr>
+  <tr><td><code>self.search_results</code></td><td>List of <code>(start, end)</code> text indices for search highlighting</td></tr>
+</table>
+<h4>parse_log(log_file, file) — Main Parsing Engine ⭐</h4>
+<p>The most critical method in the application. Reads all log lines via <code>read_lines_list_XML()</code>, starts async XML processing in a background thread, then processes each line detecting three patterns via pre-compiled regex:</p>
+<pre>Pattern A: TIMESTAMP_PATTERN
+  → Extracts timestamp, computes delta since last timestamp
+  → Maintains top-5 largest deltas in self.refference[]
+
+Pattern B: DEPTH_PATTERN ("Depth: N")
+  → Enters a new tree node as a CHILD of the current stack top
+  → Pushes node_id onto the deque stack; tags "green_text"
+
+Pattern C: LEAVING_PATTERN ("Leaving Depth")
+  → Creates a "Leaving" node as sibling of the parent
+  → Pops from the stack, calculates CDO execution time
+  → Updates the parent node's "CDO DeltaTime" column; tags "orange_text"</pre>
+<p>UI updates are batched in groups of 1000 operations (<code>_process_batch()</code>) to avoid per-line GUI redraws.</p>
+<h4>Key Methods Summary</h4>
+<table>
+  <tr><th>Method</th><th>Description</th></tr>
+  <tr><td><code>_process_batch(batch)</code></td><td>Applies pending tree operations atomically; uses try/except TclError to skip stale nodes</td></tr>
+  <tr><td><code>_update_text_area()</code></td><td>Inserts all log lines in a single <code>insert()</code> call, then applies color tags in a second pass</td></tr>
+  <tr><td><code>chart()</code></td><td>matplotlib plot with two modes: cumulative time vs. line index, or derivative. Right-click shows tooltip and highlights line in text panel</td></tr>
+  <tr><td><code>compare_(file_1, file2, Tab)</code></td><td>Synchronized diff algorithm; classifies extra rows as [FOUND] or [NOT FOUND]; returns 6 values for the comparison view</td></tr>
+  <tr><td><code>show_comparison_popup(d1, d2, ...)</code></td><td>1200×600 side-by-side diff viewer with synchronized scrollbar and color-coded diff markers</td></tr>
+  <tr><td><code>open_popup()</code></td><td>SiemensGPT dialog with log input and Q&amp;A text areas</td></tr>
+  <tr><td><code>Time_Analysis_main()</code></td><td>Smart XML loader: checks for cached JSON, then XML file, then prompts user to browse</td></tr>
+  <tr><td><code>show_Excel_data()</code></td><td>Renders <code>_Overview.xlsx</code> as interactive tkinter grid; right-click on row opens that log file</td></tr>
+  <tr><td><code>top_5_window()</code></td><td>Popup listing the 5 largest time gaps with duration and source log line</td></tr>
+  <tr><td><code>search_log()</code> / <code>next_search_result()</code></td><td>Case-insensitive search with wrapping navigation; shows "total / current" count</td></tr>
+  <tr><td><code>expand_nodes()</code> / <code>close_nodes()</code></td><td>Expand or collapse one tree level at a time</td></tr>
+  <tr><td><code>create_range_dialog()</code></td><td>Ctrl+S dialog to copy a line range to clipboard</td></tr>
+  <tr><td><code>Show_All_Matches(path)</code></td><td>Multi-file search across a folder; double-click opens file in new LogTreeView</td></tr>
+  <tr><td><code>start_async_processing()</code></td><td>Background thread writing XML response document and building JSON tree analysis</td></tr>
+</table>
+
+<h2>7. Complete Data Flow</h2>
+<pre>User launches Log_Parser_Ultimate.py
+          │
+          ▼
+load_config() → check for saved API key
+          │
+          ▼
+filedialog → user selects a .log/.txt file
+          │
+          ▼
+LogTreeView(file_path, file_name).__init__()
+          │
+          ├─ GUI layout built
+          ▼
+parse_log(log_file, file)
+          │
+          ├─ read_lines_list_XML() → response (XML), log_lines (transaction)
+          ├─ start_async_processing() → [BACKGROUND THREAD]
+          │        └─ create_xml_file() → saves .xml + _tree_analysis.json
+          ├─ for each line in log_lines: compute delta, detect Depth/Leaving, batch tree inserts
+          ├─ _process_batch() → commits tree nodes to GUI
+          └─ _update_text_area() → fills right text pane with color tags
+
+User interacts:
+ ├─ Open Excel → Structure_Excel.main() → _Overview.xlsx → show_excel_data()
+ ├─ SiemensGPT → open_popup() → Ask_SiemensGPT() → LLMApiRunnable → AI response
+ ├─ Compare Files → select_file_to_compare() → compare_() → show_comparison_popup()
+ ├─ Time Chart → chart() → matplotlib window
+ ├─ XML Time Processing → Time_Analysis_main() → show_XML_TreeView()
+ ├─ Top 5 → top_5_window()
+ ├─ Search → search_log() / next_search_result() / prev_search_result()
+ └─ Ctrl+S → create_range_dialog() → clipboard copy</pre>
+
+<h2>8. AI Integration — SiemensGPT</h2>
+<h3>8.1 Architecture</h3>
+<p>The AI layer uses the Siemens internal LLM API serving the <code>mistral-7b-instruct</code> model via standard REST (POST with JSON body).</p>
+<h3>8.2 SiemensGPT(log, question, api_key)</h3>
+<p>Chunks the log into ≤7500-token pieces (working backward from the end to prioritize recent entries), sends each chunk with a detailed prompt explaining the log format and the user's question, then uses <code>Resume_GPT()</code> to aggregate responses when ≥3 chunks are processed.</p>
+<h3>8.3 compareGPT(log, api_key)</h3>
+<p>Called automatically during file comparison. Sends <code>[FOUND]</code>/<code>[NOT FOUND]</code> annotated extra rows to the AI, which explains the semantic meaning of the differences.</p>
+<h3>8.4 Resume_GPT(log, api_key)</h3>
+<p>A meta-call that takes concatenated results of multiple chunk analyses and produces a single coherent summary — a "reducer" in the map-reduce pattern.</p>
+<h3>8.5 Prompt Engineering</h3>
+<p>Every prompt includes domain knowledge context: CDO types (Service CDO vs. Data CDO), CLF explanations, variable expression formats, resolved vs. unresolved values, and instruction to treat "deleting transaction" as a terminal marker only.</p>
+
+<h2>9. File Comparison Engine</h2>
+<h3>9.1 Algorithm</h3>
+<p>A synchronized linear scan (not a traditional LCS/diff algorithm):</p>
+<pre>row = 0
+while row &lt; max(len(file1), len(file2)):
+    if row &gt;= len(file1): collect remaining file2 rows as e2; break
+    if row &gt;= len(file2): collect remaining file1 rows as e1; break
+    r2, diff_rows, flag = tokenize(file1[row], file2[row], row, diff_rows)
+    if flag: insert " - " placeholder into file1 at current position
+    diff_file1.append(file1[row])
+    diff_file2.append(timestamp_prefix + r2)
+    row += 1</pre>
+<h3>9.2 Token-Level Diffing</h3>
+<p>Changed tokens are wrapped with <code>@@</code> markers, displayed as green highlights. This pinpoints exactly which field changed (e.g., a resolved value changed from "A" to "B").</p>
+<h3>9.3 Extra Row Classification</h3>
+<p>Extra rows go through <code>find_matching_sublists()</code>: content is looked up in a dict built from the other file's rows. If found → <code>[FOUND]</code> (action exists but at a different time); if not found → <code>[NOT FOUND]</code> (completely new action).</p>
+
+<h2>10. XML &amp; JSON Analysis Pipeline</h2>
+<h3>10.1 create_xml_file() — Async XML Builder</h3>
+<p>Runs in background thread: parses XML with <code>ET.fromstring()</code>, pretty-prints with <code>minidom</code>, saves as <code>{filename}.xml</code>, then calls <code>process_node()</code> recursively to build a JSON tree. Each node is annotated with <code>node_type</code>, <code>level</code>, <code>rank</code> (top-3 slowest at its level), <code>delta_time_ms</code>, <code>percentage_of_level</code>, and <code>subnodes</code>.</p>
+<h3>10.2 Analyze_XML() — Query Extractor</h3>
+<p>Searches the XML tree for all nodes whose tag contains <code>"__query"</code>, finds the nearest ancestor with timing information, and adds them to <code>all_query_data</code> sorted by <code>delta_time_ms</code> (slowest first).</p>
+<h3>10.3 only_show_XML_TreeView() — Direct XML Mode</h3>
+<p>Used for raw <code>.xml</code> files. Parses with <code>ET.parse()</code>, inserts each node into the TreeView, tracks timing per level, and colors the top-3 slowest nodes in red at each level.</p>
+<h3>10.4 show_XML_TreeView() — JSON Mode</h3>
+<p>Reads a pre-computed <code>_tree_analysis.json</code> and populates the TreeView. Supports full-text search, "Expand Critical Nodes" (auto-expands all rank_1 nodes), and "Analyze Queries".</p>
+<h3>10.5 show_Result_popup() — Query Analysis Report</h3>
+<p>Renders the top-40 slowest queries in a scrollable canvas, with node type, timing, percentage, "Copy Query" button for SQL text, and recursive subnode display. Warns if more than 40 queries were found.</p>
+<pre>Total time: X.XXs   |   Total queries found: N
+──────────────────────────────────────────────
+Query #1   __queryName (Time: 2.30s, 45.23%)
+  └─ __parsedSQLText: [SELECT * FROM Orders WHERE ...]
+  └─ __queryParameters: ...</pre>
+
+<h2>11. Excel Report Generation</h2>
+<table>
+  <tr><th>Step</th><th>File</th><th>Action</th></tr>
+  <tr><td>1</td><td><code>Log_Parser_Ultimate.py</code></td><td>User clicks "Open → Open Excel"</td></tr>
+  <tr><td>2</td><td><code>Log_Parser_Ultimate.py</code></td><td>Calls <code>Structure_Excel.main()</code></td></tr>
+  <tr><td>3</td><td><code>Structure_Excel.py</code></td><td>Batch processes all files → writes <code>_Overview.xlsx</code></td></tr>
+  <tr><td>4</td><td><code>Log_Parser_Ultimate.py</code></td><td>Loads <code>_Overview.xlsx</code> into pandas</td></tr>
+  <tr><td>5</td><td><code>Log_Parser_Ultimate.py</code></td><td><code>show_excel_data()</code> renders interactive table</td></tr>
+</table>
+<p>Sorting creates temporary numeric columns (<code>Duration_temp</code>, <code>Gap_temp</code>), strips non-numeric characters, sorts numerically, then drops the temp columns. Right-clicking any row opens a new <code>LogTreeView</code> for that file.</p>
+
+<h2>12. Performance Optimizations</h2>
+<table>
+  <tr><th>Optimization</th><th>Location</th><th>Method</th></tr>
+  <tr><td>Encoding detection</td><td>Both files</td><td>chardet detects encoding from first 1KB/1MB chunk only</td></tr>
+  <tr><td>Memory-mapped reading</td><td><code>Structure_Excel</code></td><td>mmap for files &gt; 1MB</td></tr>
+  <tr><td>Chunked reading</td><td><code>Log_Parser_Ultimate</code></td><td>1MB chunks to avoid loading entire file</td></tr>
+  <tr><td>Batch tree insertion</td><td><code>parse_log()</code></td><td>1000 operations per batch commit</td></tr>
+  <tr><td>Pre-compiled regex</td><td><code>parse_log()</code></td><td>Patterns compiled once before the loop</td></tr>
+  <tr><td>Deque for stack</td><td><code>parse_log()</code></td><td>O(1) push/pop vs O(n) for list</td></tr>
+  <tr><td>Dict for node lookups</td><td><code>parse_log()</code></td><td><code>node_values{}</code> for O(1) node property access</td></tr>
+  <tr><td>Dict-based string matching</td><td><code>find_matching_sublists()</code></td><td>O(n+m) instead of O(n*m) naive comparison</td></tr>
+  <tr><td>Async XML writing</td><td><code>start_async_processing()</code></td><td>Writes XML in background thread, never blocks GUI</td></tr>
+  <tr><td>Single-pass text insert</td><td><code>_update_text_area()</code></td><td>One <code>insert()</code> call, then separate tagging pass</td></tr>
+  <tr><td>AI chunking</td><td><code>split_text_no_overlap()</code></td><td>7500-token limit avoids API context window errors</td></tr>
+  <tr><td>Query display limit</td><td><code>show_Result_popup()</code></td><td>Shows maximum 40 queries, warns if truncated</td></tr>
+</table>
+
+<h2>13. User Interface Reference</h2>
+<h3>Main Window Toolbar</h3>
+<table>
+  <tr><th>Button</th><th>Color</th><th>Action</th></tr>
+  <tr><td>Open (menu)</td><td>Purple</td><td>Open File / Open Excel / Search in All Files / Top 5</td></tr>
+  <tr><td>SiemensGPT</td><td>Teal</td><td>Open AI chat popup</td></tr>
+  <tr><td>Expand All</td><td>Olive</td><td>Toggle expand/collapse all tree nodes</td></tr>
+  <tr><td>Expand Nodes</td><td>Green</td><td>Expand one tree level deeper</td></tr>
+  <tr><td>Close Nodes</td><td>Coral</td><td>Collapse one tree level</td></tr>
+  <tr><td>Search box</td><td>White</td><td>Text entry for log search</td></tr>
+  <tr><td>Search</td><td>Yellow</td><td>Execute search, highlight all matches</td></tr>
+  <tr><td>Next</td><td>Teal</td><td>Jump to next search match</td></tr>
+  <tr><td>XML Time Processing</td><td>Blue text</td><td>Open XML/JSON timing analysis</td></tr>
+  <tr><td>Compare Files</td><td>Orange</td><td>Select second file for comparison</td></tr>
+  <tr><td>Time Chart</td><td>Royal Blue</td><td>Open cumulative time matplotlib chart</td></tr>
+</table>
+<h3>Tree View Columns</h3>
+<table>
+  <tr><th>Column</th><th>Description</th></tr>
+  <tr><td>Message</td><td>Log line content with line number prefix</td></tr>
+  <tr><td>Delta Time</td><td>Elapsed time since previous timestamped line</td></tr>
+  <tr><td>CDO DeltaTime</td><td>Total execution time for this CDO depth scope</td></tr>
+</table>
+<p><strong>Color coding:</strong> Green text = Depth entry lines; Orange text = Leaving Depth lines; Purple = line numbers (text panel); Yellow background = search/sync highlights.</p>
+
+<h2>14. Keyboard Shortcuts</h2>
+<table>
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td><code>Ctrl+F</code></td><td>Focus the search entry box</td></tr>
+  <tr><td><code>Enter</code></td><td>Execute search</td></tr>
+  <tr><td><code>Escape</code></td><td>Clear all search highlights</td></tr>
+  <tr><td><code>→ (Right Arrow)</code></td><td>Navigate to next search result</td></tr>
+  <tr><td><code>← (Left Arrow)</code></td><td>Navigate to previous search result</td></tr>
+  <tr><td><code>Ctrl+S</code></td><td>Open "Select Range" dialog (copies line range to clipboard)</td></tr>
+  <tr><td>Double-click on tree node</td><td>Highlights the corresponding line in the text panel</td></tr>
+  <tr><td>Mouse wheel on tree / log panel</td><td>Scrolls the respective panel</td></tr>
+</table>
+
+<h2>15. Error Handling Strategy</h2>
+<ul>
+  <li><strong>Exception detection in logs:</strong> <code>Analyse()</code> detects <code>EXCEPTION</code>, <code>csiXMLException</code>, and <code>csiException</code> tokens, sets <code>ERROR = True</code>, and extracts the description for the Excel Exception column.</li>
+  <li><strong>Runtime GUI errors:</strong> Almost all methods wrap logic in <code>try/except Exception as e:</code> blocks and show <code>messagebox.showerror()</code> dialogs to prevent crashes.</li>
+  <li><strong>Encoding errors:</strong> Both file readers handle <code>UnicodeDecodeError</code> silently to accommodate files with mixed or corrupt encoding segments.</li>
+  <li><strong>Batch processing errors:</strong> <code>_process_batch()</code> catches <code>tk.TclError</code> for individual node operations, allowing the rest of the batch to proceed.</li>
+  <li><strong>API errors:</strong> <code>LLMApiRunnable.invoke()</code> catches <code>KeyError</code>/<code>IndexError</code> and returns a descriptive error string instead of crashing.</li>
+  <li><strong>XML parse errors:</strong> <code>create_xml_file()</code> catches <code>ET.ParseError</code> and reports it while allowing the rest of the application to continue.</li>
+</ul>
+
+<h2>16. Output Files Produced</h2>
+<table>
+  <tr><th>File</th><th>Produced By</th><th>Location</th><th>Description</th></tr>
+  <tr><td><code>_Overview.xlsx</code></td><td><code>Structure_Excel.py</code></td><td>Selected folder</td><td>Excel summary with one row per log file</td></tr>
+  <tr><td><code>{filename}.xml</code></td><td><code>create_xml_file()</code></td><td><code>{filename}/</code> subdirectory</td><td>Pretty-printed XML Response Document</td></tr>
+  <tr><td><code>{filename}_tree_analysis.json</code></td><td><code>create_xml_file()</code></td><td><code>{filename}/</code> subdirectory</td><td>Full tree analysis with ranks, timing, SQL</td></tr>
+  <tr><td><code>IR_{name}_Request_Document.xml</code></td><td><code>print_List_xml()</code></td><td><code>{IR}/</code> subdirectory</td><td>XML Request Document</td></tr>
+  <tr><td><code>IR_{name}_Response_Document.xml</code></td><td><code>print_List_xml_Response()</code></td><td><code>{IR}/</code> subdirectory</td><td>XML Response Document</td></tr>
+  <tr><td><code>config.json</code></td><td><code>save_config()</code></td><td>Application working directory</td><td>Saved API key for reuse</td></tr>
+</table>
+
+<h2>17. Application Entry Point &amp; Configuration</h2>
+<pre>if __name__ == "__main__":
+    config = load_config()          # Load saved API key from config.json
+    stored_api_key = config.get("default_api_key", None)
+    root = tk.Tk()
+    root.withdraw()                 # Hidden root window (standard tkinter pattern)
+    if not stored_api_key:
+        # Prompt user for API key
+        # Option to save as default for future sessions
+    while True:
+        file_path = filedialog.askopenfilename(...)
+        log_tree_view = LogTreeView(file_path, file_name)
+        log_tree_view.mainloop()
+        sys.exit()</pre>
+<div class="note"><strong>Key design decision:</strong> The root <code>tk.Tk()</code> window is hidden (<code>root.withdraw()</code>). <code>LogTreeView</code> itself inherits from <code>tk.Tk</code>, effectively becoming the standalone root window — a standard tkinter pattern for custom main window classes.</div>
+<p>API Key Management: default key is hardcoded as fallback, user can override at startup, custom keys can be saved to <code>config.json</code> for persistence, and <code>load_config()</code> safely handles empty or missing files.</p>
+
+<h2>18. Design Decisions &amp; Technical Rationale</h2>
+<h3>Why Two Separate Files?</h3>
+<p><code>Structure_Excel.py</code> handles purely batch, non-interactive processing and can be run standalone from the command line. <code>Log_Parser_Ultimate.py</code> handles interactive analysis. Separation keeps concerns distinct and allows <code>Structure_Excel.main()</code> to be invoked as a library call from the GUI.</p>
+<h3>Why Tkinter + PyQt6 Mixed?</h3>
+<p>The core GUI is in tkinter (simpler, no external dependency). However, tkinter's built-in progress dialog is limited and not always modal. PyQt6's <code>QProgressDialog</code> is modal and platform-native, used specifically for long-running operations.</p>
+<h3>Why Global Variables in Structure_Excel?</h3>
+<p>The batch parser works in a single execution thread. Using globals avoids parameter-passing overhead across deeply nested calls. While not recommended for library code, it is pragmatic for a single-purpose script module.</p>
+<h3>Why the Deque/Stack Approach for Tree Building?</h3>
+<p>Siemens log files express call stack depth explicitly through <code>Depth: N</code> tokens. A deque as a stack perfectly mirrors the call stack. When <code>Leaving Depth</code> is detected, the CDO delta time is computed by popping the node and measuring elapsed time.</p>
+<h3>Why NLTK Tokenization for Comparison?</h3>
+<p>NLTK's <code>word_tokenize</code> correctly handles punctuation as separate tokens, allowing the comparison to separate structural characters from semantic values for accurate token-level diffing.</p>
+<h3>Why Chunked AI Processing?</h3>
+<p>The Mistral-7B model has a finite context window. Large log files can easily exceed 15,000+ tokens. Chunking to 7500 tokens stays within safe limits. <code>Resume_GPT()</code> then synthesizes multiple chunk analyses into one — implementing a map-reduce pattern for AI-assisted analysis.</p>
+
+<hr style="margin-top:60px; border-color:#aac4e0;">
+<p style="text-align:center; color:#888; font-size:9.5pt;">End of Manual — Document covers all major components of both source files.<br>Siemens Transaction Log Parser · Thesis Project · March 2026</p>
+</body>
+</html>

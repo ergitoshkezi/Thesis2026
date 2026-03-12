@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RAG-Based AI Chatbot — Technical Documentation</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.6; color: #1a1a1a; max-width: 900px; margin: 0 auto; padding: 40px; }
+  h1 { font-size: 22pt; color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 40px; }
+  h2 { font-size: 16pt; color: #003366; border-bottom: 1.5px solid #aac4e0; padding-bottom: 4px; margin-top: 36px; }
+  h3 { font-size: 13pt; color: #1a4a80; margin-top: 24px; }
+  h4 { font-size: 11pt; color: #2a5a90; margin-top: 18px; font-weight: bold; }
+  .cover { text-align: center; padding: 80px 0 60px 0; border-bottom: 2px solid #003366; margin-bottom: 40px; }
+  .cover h1 { font-size: 28pt; border: none; }
+  .cover .subtitle { font-size: 14pt; color: #555; margin-top: 8px; font-style: italic; }
+  .cover .meta { font-size: 11pt; color: #777; margin-top: 30px; line-height: 2; }
+  pre, code { font-family: Consolas, 'Courier New', monospace; font-size: 9.5pt; background: #f4f7fa; border: 1px solid #d0dcea; border-radius: 4px; }
+  pre { padding: 14px 18px; overflow-x: auto; white-space: pre-wrap; line-height: 1.5; }
+  code { padding: 1px 5px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 10.5pt; }
+  th { background: #003366; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
+  td { padding: 7px 12px; border-bottom: 1px solid #dde6f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f8fc; }
+  .toc { background: #f0f5fb; border: 1px solid #c5d8ee; border-radius: 6px; padding: 20px 28px; margin: 30px 0; }
+  .toc h2 { border: none; margin-top: 0; font-size: 14pt; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 4px 0; }
+  .note { background: #fffbe6; border-left: 4px solid #f0b429; padding: 10px 16px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+  ul li, ol li { margin: 4px 0; }
+  @media print { body { padding: 0; max-width: 100%; } pre { page-break-inside: avoid; } h2 { page-break-after: avoid; } }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <h1>RAG-Based AI Chatbot</h1>
+  <div class="subtitle">Retrieval-Augmented Generation System</div>
+  <div class="subtitle" style="font-size:13pt; margin-top:4px;">Thesis Technical Documentation</div>
+  <div class="meta">
+    <strong>Author:</strong> [Your Name]<br>
+    <strong>Date:</strong> March 2026<br>
+    <strong>Stack:</strong> Python &nbsp;·&nbsp; Streamlit &nbsp;·&nbsp; FAISS &nbsp;·&nbsp; BGE-M3 Embeddings &nbsp;·&nbsp; Mistral-7B LLM &nbsp;·&nbsp; SQLite &nbsp;·&nbsp; RSA Encryption<br>
+    <strong>Files:</strong> <code>ChatBox_complete.py</code> &nbsp;·&nbsp; <code>Machine_A.py</code> &nbsp;·&nbsp; <code>htmlTemplates.py</code>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li>Project Overview</li>
+    <li>System Architecture</li>
+    <li>File-by-File Breakdown
+      <ol>
+        <li>ChatBox_complete.py — Core RAG Engine</li>
+        <li>Machine_A.py — Secure Key Management &amp; Decryption</li>
+        <li>htmlTemplates.py — Chat UI Templates</li>
+      </ol>
+    </li>
+    <li>End-to-End Data Flow</li>
+    <li>Component Deep-Dives
+      <ol>
+        <li>PDF Ingestion &amp; Intelligent Chunking</li>
+        <li>Embedding Generation — EmbeddingApiRunnable</li>
+        <li>FAISS Vector Store</li>
+        <li>Persistent Storage — SQLite Database Layer</li>
+        <li>Query Pipeline — Retrieval &amp; Generation</li>
+        <li>Token Budget Management</li>
+        <li>RSA Encryption for API Key Security</li>
+        <li>UI Layer — Streamlit + Custom HTML/CSS</li>
+      </ol>
+    </li>
+    <li>Security Design</li>
+    <li>Design Decisions &amp; Trade-offs</li>
+    <li>Limitations &amp; Future Work</li>
+    <li>Dependency Map</li>
+  </ol>
+</div>
+
+<!-- SECTION 1 -->
+<h1>1. Project Overview</h1>
+<p>This project implements a <strong>Retrieval-Augmented Generation (RAG)</strong> chatbot designed to allow users to interactively ask questions about the content of their own PDF documents. Instead of relying purely on a language model's pre-trained knowledge, the system performs the following pipeline:</p>
+<ol>
+  <li><strong>Ingests</strong> one or more PDFs and extracts their textual and tabular content using high-resolution layout analysis.</li>
+  <li><strong>Chunks</strong> the text into semantically coherent segments, respecting document section boundaries.</li>
+  <li><strong>Embeds</strong> each chunk using the BGE-M3 multilingual embedding model, converting text into dense 1024-dimensional numerical vectors.</li>
+  <li><strong>Stores</strong> these vectors in a FAISS (Facebook AI Similarity Search) index, persisted to a SQLite database for reuse across sessions.</li>
+  <li><strong>Retrieves</strong> the most relevant chunks at query time by comparing the user's embedded question against stored vectors.</li>
+  <li><strong>Generates</strong> a fluent, contextualised answer using the Mistral-7B-Instruct LLM, prompted with the retrieved chunks.</li>
+</ol>
+<p>The entire system is served through a <strong>Streamlit</strong> web application, secured with <strong>RSA asymmetric encryption</strong> to protect sensitive API keys at rest.</p>
+
+<!-- SECTION 2 -->
+<h1>2. System Architecture</h1>
+<pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                        Streamlit UI                             │
+│  ┌─────────────┐  ┌──────────────────┐  ┌──────────────────┐   │
+│  │ DB Selector │  │  PDF Uploader    │  │  Manual Selector │   │
+│  │  (Sidebar)  │  │  + Process btn   │  │  (existing DB)   │   │
+│  └─────────────┘  └──────────────────┘  └──────────────────┘   │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+         ┌─────────────────▼──────────────────────┐
+         │           RAG Pipeline                  │
+         │  1. PDF Partition (hi-res + tables)     │
+         │     partition_pdf() → elements          │
+         │  2. Chunking                            │
+         │     chunk_by_title() → chunks           │
+         │  3. Embedding (BGE-M3 via REST API)     │
+         │     EmbeddingApiRunnable.invoke_e()     │
+         │  4. FAISS IndexFlatL2                   │
+         │     Built from embedding matrix         │
+         │  5. SQLite Persistence                  │
+         │     FAISS bytes + gzip text stored      │
+         └────────────────────────────────────────-┘
+
+         ┌────────────────────────────────────────┐
+         │           Query Pipeline               │
+         │  User Question                         │
+         │    → Token budget check (tiktoken)     │
+         │    → Embed question (BGE-M3)           │
+         │    → FAISS.search(k=5) all indexes     │
+         │    → Sort by L2 distance, top-5        │
+         │    → LLM prompt construction           │
+         │    → Mistral-7B-Instruct (REST API)    │
+         │    → Chat history append + UI render   │
+         └────────────────────────────────────────┘
+
+         ┌────────────────────────────────────────┐
+         │      Security Layer (Machine_A)        │
+         │  RSA-2048 private key (local)          │
+         │  API keys encrypted with public key    │
+         │  Decrypted at runtime for each call    │
+         └────────────────────────────────────────┘
+</pre>
+
+<!-- SECTION 3 -->
+<h1>3. File-by-File Breakdown</h1>
+
+<h2>3.1 ChatBox_complete.py — Core RAG Engine</h2>
+<p>This is the main application file (~906 lines). It owns the complete RAG pipeline and the Streamlit UI.</p>
+
+<h3>Imports &amp; Initial Setup (Lines 1–24)</h3>
+<pre>import streamlit as st
+from unstructured.chunking.title import chunk_by_title
+from htmlTemplates import css, bot_template, user_template
+from flask import Flask
+import os, sqlite3, requests, glob, json, gzip, numpy as np, faiss, tiktoken
+import Machine_A
+from dotenv import load_dotenv</pre>
+
+<table>
+  <tr><th>Library</th><th>Purpose</th></tr>
+  <tr><td><code>streamlit</code></td><td>Serves the entire web UI declaratively</td></tr>
+  <tr><td><code>unstructured</code></td><td>Intelligent document parsing; handles PDFs with mixed layouts (text, images, tables)</td></tr>
+  <tr><td><code>faiss</code></td><td>Facebook's vector similarity search library; flat L2 mode for exact nearest-neighbour search</td></tr>
+  <tr><td><code>tiktoken</code></td><td>OpenAI's tokenizer; used with <code>cl100k_base</code> encoding to count tokens precisely and enforce budget limits</td></tr>
+  <tr><td><code>Machine_A</code></td><td>Custom RSA decryption module (see §3.2)</td></tr>
+  <tr><td><code>dotenv</code></td><td>Loads sensitive environment variables from <code>.env</code> file</td></tr>
+</table>
+
+<p>A Poppler binary path is injected into <code>PATH</code> so that <code>unstructured</code> can render PDF pages to images for its high-resolution parser. A Flask app object is instantiated (though not started as a separate server); the <code>UPLOAD_FOLDER</code> (<code>./Analysed_PDFs</code>) is created on disk if it does not exist.</p>
+
+<h3>save_uploaded_file(uploaded_file, save_path)</h3>
+<pre>def save_uploaded_file(uploaded_file, save_path):
+    with open(save_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())</pre>
+<p>Writes a Streamlit <code>UploadedFile</code> object to disk under <code>./Analysed_PDFs/</code>. This is necessary because <code>partition_pdf()</code> requires a real filesystem path, not an in-memory buffer. Writing in binary mode ensures no corruption of the PDF binary format.</p>
+
+<h3>get_available_dbs()</h3>
+<pre>def get_available_dbs():
+    db_files = glob.glob('*.db')
+    return [os.path.splitext(db_file)[0] for db_file in db_files]</pre>
+<p>Scans the current working directory for all SQLite <code>.db</code> files and returns their names (without extension). This feeds the sidebar dropdown. The glob pattern <code>*.db</code> is intentionally simple — databases must live in the same directory as the script, keeping the design stateless and portable.</p>
+
+<h3>does_DB_exists(DB)</h3>
+<p>Checks whether a database matching a partial name exists using <code>glob.glob(f'*{DB}*.db')</code>. Returns the first match or <code>None</code>. Used for user feedback; not called in the main processing flow.</p>
+
+<h3>init_db(DB)</h3>
+<pre>def init_db(DB):
+    conn = sqlite3.connect(f'{DB}.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS pdf_analysis (
+        id INTEGER PRIMARY KEY,
+        filename TEXT UNIQUE,
+        analysis TEXT,
+        chunked_text BLOB,
+        vectorstore BLOB
+    )''')
+    conn.commit()
+    conn.close()
+    return f'{DB}.db'</pre>
+<p>Creates (or connects to) a SQLite database file and ensures the <code>pdf_analysis</code> table exists. SQLite is chosen for its zero-configuration character — no separate database server is needed.</p>
+
+<table>
+  <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>INTEGER PK</td><td>Auto-incremented row ID</td></tr>
+  <tr><td><code>filename</code></td><td>TEXT UNIQUE</td><td>Original PDF filename; prevents duplicate ingestion</td></tr>
+  <tr><td><code>analysis</code></td><td>TEXT</td><td>Placeholder analysis string (reserved for future LLM summary)</td></tr>
+  <tr><td><code>chunked_text</code></td><td>BLOB</td><td>gzip-compressed JSON array of the text chunks</td></tr>
+  <tr><td><code>vectorstore</code></td><td>BLOB</td><td>Raw serialised FAISS index bytes</td></tr>
+</table>
+
+<h3>analyze_pdf(file_path)</h3>
+<p>A placeholder function returning a simple string. This field in the database is reserved for future expansion, e.g., a high-level summary generated by an LLM.</p>
+
+<h3>save_analysis_to_db(filename, analysis, text, faiss_index, DB)</h3>
+<p>Serialises and persists all artefacts of processing a single PDF to SQLite in three steps:</p>
+<ol>
+  <li><strong>Serialise FAISS index:</strong> <code>faiss.serialize_index(faiss_index)</code> converts the in-memory index to a contiguous byte array of <code>uint8</code>, preserving full index metadata for lossless reconstruction.</li>
+  <li><strong>Compress text chunks:</strong> <code>json.dumps(text)</code> → <code>gzip.compress()</code>. For a 100-page document raw text chunks can be several hundred KB; gzip achieves 60–80% compression on English text.</li>
+  <li><strong>Upsert to SQLite:</strong> <code>INSERT OR REPLACE</code> means re-processing the same PDF overwrites previous data. <code>sqlite3.Binary()</code> wraps the FAISS bytes to signal binary blob rather than text.</li>
+</ol>
+
+<h3>load_analysis_from_db(filename, DB)</h3>
+<p>Retrieves and reconstructs the FAISS index for a single file by filename. Handles <code>memoryview</code> → <code>bytes</code> conversion (SQLite sometimes returns BLOBs as <code>memoryview</code> objects rather than raw bytes).</p>
+
+<h3>Load_selected_analysis_from_db(sel, DB)</h3>
+<p>The primary retrieval function. Accepts a single string or a list of strings and builds a dynamic SQL query with LIKE matching:</p>
+<pre>placeholders = ['filename LIKE ?' for _ in search_terms]
+query_conditions = ' OR '.join(placeholders)
+params = [f'%{term}%' for term in search_terms]</pre>
+<p>This allows partial-name matching — searching for <code>"manual"</code> will find any file whose name contains "manual". For each matched row, the FAISS index is reconstructed via <code>np.frombuffer</code> + <code>faiss.deserialize_index</code> and text chunks are decompressed via <code>gzip.decompress</code> + <code>json.loads</code>. Returns a tuple <code>(faiss_indexes, retrieved_text_chunks)</code> enabling querying across several PDFs simultaneously.</p>
+
+<h3>get_pdf_text(filepath)</h3>
+<pre>def get_pdf_text(filepath):
+    elements = partition_pdf(filepath,
+                              strategy="hi_res",
+                              infer_table_structure=True)
+    return elements</pre>
+<p>Uses <code>unstructured</code>'s <code>partition_pdf</code> with two key settings:</p>
+<ul>
+  <li><code>strategy="hi_res"</code>: Renders each PDF page as an image (requires Poppler) and applies an OCR/layout analysis pipeline. Correctly handles multi-column layouts, scanned documents, and embedded images with text.</li>
+  <li><code>infer_table_structure=True</code>: Detects tabular regions and returns them as <code>Table</code> elements with structured cell content, rather than garbled flowing text.</li>
+</ul>
+<p>Returns a list of typed <code>Element</code> objects, each carrying text content and metadata (page number, coordinates, element type: <code>Title</code>, <code>NarrativeText</code>, <code>Table</code>, <code>ListItem</code>, etc.).</p>
+
+<h3>get_text_chunks(elements)</h3>
+<pre>def get_text_chunks(elements):
+    chunks = chunk_by_title(
+        elements, max_characters=3000,
+        new_after_n_chars=2000,
+        multipage_sections=False)
+    return chunks</pre>
+<ul>
+  <li><code>max_characters=3000</code>: A single chunk will never exceed 3000 characters.</li>
+  <li><code>new_after_n_chars=2000</code>: A new chunk begins after 2000 characters even without a title boundary, preventing overly long sections.</li>
+  <li><code>multipage_sections=False</code>: Each chunk is constrained to a single page, preventing semantic crossings between PDF pages — important when page boundaries correspond to topic boundaries.</li>
+</ul>
+<p>Title-based chunking is preferred because section titles are semantic anchors. Grouping content under its title means each chunk contains topically coherent information, directly improving retrieval quality since chunk content aligns with what a user is likely to query.</p>
+
+<h3>categorize(elements)</h3>
+<p>An alternative custom chunking function used by the now-deprecated <code>get_pdf_text0</code>. It iterates element by element, identifies tables and formats them with <code>convert_table_to_text()</code> (tab → pipe formatting), groups elements into chunks breaking at <code>Title</code> boundaries, and inserts a sentinel string <code>"ERGI"</code> at each section break for debugging. This function demonstrates a manual implementation of what <code>chunk_by_title</code> does automatically.</p>
+
+<h3>EmbeddingApiRunnable Class</h3>
+<p>This class abstracts the REST API call to the BGE-M3 embedding service.</p>
+<pre>class EmbeddingApiRunnable:
+    def __init__(self, api_url, api_key): ...
+    def invoke_e(self, texts): ...         # core method
+    def invoke(self, texts): ...           # alias for invoke_e
+    def embed_documents(self, texts): ... # LangChain-compatible interface
+    def __call__(self, texts): ...        # makes instance callable directly</pre>
+<p><code>invoke_e(texts)</code> constructs and sends a POST request:</p>
+<pre>payload = {
+    "model": "bge-m3",
+    "input": texts  # list of strings
+}
+response = requests.post(self.api_url, headers=headers, json=payload)
+embeddings = [item['embedding'] for item in response_json['data']]</pre>
+<p><strong>BGE-M3</strong> (BAAI General Embedding, M3) is a state-of-the-art multilingual embedding model producing dense vectors of dimension 1024, supporting 100+ languages. It is ideal for technical documentation which may mix languages or contain domain-specific terminology. The multiple interface methods (<code>invoke</code>, <code>embed_documents</code>, <code>__call__</code>) make this class compatible with both direct calls and LangChain's embedding interface, ensuring forward compatibility.</p>
+
+<h3>get_vectorstore(text_chunks)</h3>
+<p>Builds the FAISS index from a list of unstructured chunk objects in four steps:</p>
+<ol>
+  <li>Decrypt API key: <code>Machine_A.decrypt_message(os.getenv('API_KEY_Embedding'), Machine_A.load_private_key())</code></li>
+  <li>Extract text strings: <code>texts = [chunk.to_dict()['text'] for chunk in text_chunks]</code></li>
+  <li>Batch embed: <code>embeddings = np.array(embedding_runnable(texts))</code> → shape: <code>(n_chunks, 1024)</code></li>
+  <li>Build FAISS index: <code>index = faiss.IndexFlatL2(1024)</code> → <code>index.add(embeddings)</code></li>
+</ol>
+<p><code>IndexFlatL2</code> performs exhaustive nearest-neighbour search using L2 (Euclidean) distance. It stores all vectors in memory and compares the query against every stored vector at search time. While slower than approximate indexes, it provides <strong>exact</strong> results — critical for a thesis prototype where correctness is more important than millisecond latency.</p>
+<p>The commented alternatives in the code show the author evaluated:</p>
+<ul>
+  <li><code>IndexIVFFlat</code>: Clusters vectors into <code>nlist</code> cells (inverted file index). Only searches nearby cells at query time. Fast but approximate.</li>
+  <li><code>IndexIVFPQ</code>: Compresses vectors using Product Quantization on top of IVF. Extreme memory savings but more approximate.</li>
+</ul>
+
+<h3>count_tokens(text)</h3>
+<pre>def count_tokens(text):
+    return len(tokenizer.encode(text))</pre>
+<p>Uses the <code>cl100k_base</code> tiktoken tokenizer (the same tokenizer used by GPT-4) to count tokens precisely. Used to enforce the 512-token context budget. An earlier naive implementation simply counted whitespace-split words; the tokenizer-based version is significantly more accurate because many words tokenize to 2+ tokens.</p>
+
+<h3>truncate_chat_history_(history)</h3>
+<pre>def truncate_chat_history_(history):
+    while sum(count_tokens(message['content']) for message in history) > 512:
+        history.pop(0)
+    return history</pre>
+<p>Iteratively removes the oldest messages from the chat history until the total token count is under 512. This is a FIFO (First-In, First-Out) eviction strategy — it preserves recent context at the cost of old context, preventing the accumulated chat history from overwhelming the LLM's context window.</p>
+
+<h3>LLMApiRunnable Class</h3>
+<p>Abstracts calls to the Mistral-7B-Instruct LLM REST endpoint:</p>
+<pre>payload = {
+    "model": "mistral-7b-instruct",
+    "temperature": temperature,     # default 0.1
+    "max_tokens": max_tokens,       # default 1024
+    "messages": [{"role": "user", "content": messages}]
+}</pre>
+<p>Mistral-7B-Instruct is a 7-billion-parameter open-weight instruction-tuned LLM from Mistral AI. <code>temperature=0.1</code> produces highly deterministic, factual outputs — appropriate for a document Q&A system where consistency and accuracy matter more than creativity. <code>max_tokens=1024</code> caps response length to prevent excessively long answers.</p>
+
+<h3>get_conversation_chain_faiss(query, faiss_results)</h3>
+<p>Constructs the full RAG prompt and calls the LLM:</p>
+<pre>results_text = "\n".join(
+    [f"Result {i+1}: {result['text']} (distance: {result['distance']:.4f})"
+     for i, result in enumerate(faiss_results)]
+)
+prompt = (
+    f"User question: {query}\n\n"
+    f"Here are some related results:\n{results_text}\n\n"
+    "Please summarize or reorder the results based on their relevance."
+)</pre>
+<p>Prompt structure: the user's raw question, followed by top-k retrieved chunks with their L2 distance scores (giving the LLM meta-information about retrieval confidence), followed by an instruction to synthesise — not to hallucinate, but to work purely from provided evidence. The response is appended to <code>st.session_state.chat_history</code> with <code>role: 'Siemens'</code>.</p>
+
+<h3>Embedd_user_question(user_question)</h3>
+<p>Embeds the user's query using the same BGE-M3 model used during ingestion. Embedding model consistency is critical: if documents were embedded with model A and the query with model B, the vector spaces won't be aligned and search results will be meaningless. Returns a 2D NumPy array of shape <code>(1, 1024)</code> ready for <code>faiss_index.search()</code>.</p>
+
+<h3>handle_userinput(user_question)</h3>
+<p>The central orchestration function called when the user submits a question. Full logic:</p>
+<ol>
+  <li>Guard: if no FAISS index loaded → show error</li>
+  <li>Truncate question to 70 words if too long</li>
+  <li>Append question to <code>chat_history</code></li>
+  <li>Count total tokens (question + history)</li>
+  <li>IF tokens &lt; 512: embed question → FAISS search (k=5) across all loaded indexes → collect &amp; sort all results by L2 distance → call LLM with top-5 results</li>
+  <li>ELSE: <code>truncate_chat_history_()</code> → then embed → FAISS search → call LLM</li>
+  <li>Display updated chat history</li>
+</ol>
+<p><strong>Multi-index search:</strong> <code>st.session_state.conversation</code> can hold a list of FAISS indexes (one per PDF). The code iterates all of them, collecting up to k=5 results from each, then globally sorts all results by L2 distance and selects the overall best 5 — enabling effective cross-document retrieval.</p>
+
+<h3>display_chat_history()</h3>
+<p>Renders the chat history using HTML templates from <code>htmlTemplates.py</code>. User messages → rendered with <code>user_template</code> (dark background <code>#2b313e</code>, user avatar icon). Bot messages → rendered with <code>bot_template</code> (lighter <code>#475063</code>, Siemens logo). <code>st.write(..., unsafe_allow_html=True)</code> renders raw HTML inside Streamlit, bypassing its default markdown renderer.</p>
+
+<h3>check_if_present(DB_name, pdf)</h3>
+<pre>cursor.execute(f'SELECT filename FROM pdf_analysis WHERE filename = "{pdf}"')
+result = cursor.fetchall()
+return bool(result)</pre>
+<p>Checks if a PDF has already been processed and stored in the database before ingestion. Prevents duplicate embeddings (which would waste compute and inflate the index) and duplicate rows.</p>
+
+<h3>main() — Streamlit Entry Point</h3>
+<p>The Streamlit entry point, structured around sidebars and the main content area:</p>
+<ul>
+  <li><strong>Main area:</strong> Page config (title, robot emoji icon), custom CSS injection, text input form + Submit button → <code>handle_userinput()</code>.</li>
+  <li><strong>Sidebar 1 — Database Selection:</strong> Dropdown of all <code>.db</code> files; "Choose" button → <code>init_db()</code> to ensure the table exists.</li>
+  <li><strong>Sidebar 2 — PDF Upload &amp; Processing:</strong> Multi-PDF uploader. "Process" button → save to disk → check if already in DB → extract text → chunk → embed + build FAISS → store in session state → persist to SQLite.</li>
+  <li><strong>Sidebar 3 — Manual Selection:</strong> Text input to specify document name(s), comma-separated. "Select" button → loads existing embeddings from DB (<code>Load_selected_analysis_from_db</code>), restores FAISS indexes + text into session state.</li>
+</ul>
+
+<h2>3.2 Machine_A.py — Secure Key Management &amp; Decryption</h2>
+<p>This module implements the <strong>Machine A</strong> side of an asymmetric RSA key infrastructure for securing API credentials.</p>
+
+<h3>generate_keys()</h3>
+<pre>private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)</pre>
+<p>Generates a 2048-bit RSA key pair. Private key → saved to <code>./key/private_key.pem</code> (PKCS8, no passphrase). This key <strong>never leaves Machine A</strong>. Public key → saved to <code>./key/public_key.pem</code> (SubjectPublicKeyInfo PEM format). <code>public_exponent=65537</code> is the standard RSA public exponent (Fermat number F4), universally used in modern RSA implementations.</p>
+
+<h3>load_private_key()</h3>
+<pre>def load_private_key():
+    with open(PRIVATE_KEY_FILE, "rb") as f:
+        return serialization.load_pem_private_key(f.read(), password=None)</pre>
+<p>Loads the private key from disk at runtime. This is called lazily (only when a decryption is needed), ensuring the key material is kept in memory for the shortest possible time.</p>
+
+<h3>decrypt_message(ciphertext, private_key)</h3>
+<pre>decrypted_text = private_key.decrypt(
+    base64.b64decode(ciphertext),
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)</pre>
+<p>Decrypts a base64-encoded RSA ciphertext using OAEP padding with SHA-256:</p>
+<ul>
+  <li><strong>Why OAEP?</strong> OAEP is probabilistic (each encryption of the same plaintext produces a different ciphertext) and provides semantic security against chosen-ciphertext attacks (CCA2-secure). Older PKCS#1 v1.5 padding is vulnerable to Bleichenbacher attacks.</li>
+  <li><strong>SHA-256</strong> for both MGF1 and the hash algorithm provides 128-bit security.</li>
+  <li>The ciphertext is stored <strong>base64-encoded</strong> in the <code>.env</code> file, making it safe to store as an ASCII string in a plain-text environment file.</li>
+</ul>
+
+<h3>main()</h3>
+<p>Checks if <code>private_key.pem</code> already exists; if not, generates a new key pair. This ensures keys are generated once and never overwritten accidentally.</p>
+
+<h2>3.3 htmlTemplates.py — Chat UI Templates</h2>
+<p>Defines three Python string constants injected into the Streamlit app via <code>st.write(..., unsafe_allow_html=True)</code>.</p>
+
+<h3>css</h3>
+<pre>.chat-message { padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1rem; display: flex }
+.chat-message.user { background-color: #2b313e }   /* dark navy for user */
+.chat-message.bot  { background-color: #475063 }   /* lighter slate for bot */
+.chat-message .avatar { width: 20% }
+.chat-message .avatar img { max-width: 78px; border-radius: 50%; object-fit: cover }
+.chat-message .message { width: 80%; padding: 0 1.5rem; color: #fff }</pre>
+<p>A dark-themed chat UI with circular avatars (20% width) and message text (80% width) side-by-side — a standard chat bubble layout.</p>
+
+<h3>user_template &amp; bot_template</h3>
+<pre>&lt;div class="chat-message user"&gt;
+    &lt;div class="avatar"&gt;
+        &lt;img src="https://img.icons8.com/?size=100&id=13042&format=png"&gt;
+    &lt;/div&gt;
+    &lt;div class="message"&gt;{{MSG}}&lt;/div&gt;
+&lt;/div&gt;</pre>
+<p>The <code>{{MSG}}</code> placeholder is replaced at runtime by <code>user_template.replace("{{MSG}}", user_message)</code>. The avatar is a generic person icon from Icons8. <code>bot_template</code> uses the identical structure but substitutes the <strong>Siemens logo</strong> as the bot's avatar, establishing the chatbot's corporate identity and directly connecting the thesis project to its intended Siemens deployment context.</p>
+
+<!-- SECTION 4 -->
+<h1>4. End-to-End Data Flow</h1>
+
+<h2>4.1 Ingestion Flow (New PDF)</h2>
+<pre>User uploads PDF via Streamlit
+         │
+         ▼
+save_uploaded_file() → ./Analysed_PDFs/{name}.pdf
+         │
+         ▼
+check_if_present() → if already in DB, skip
+         │
+         ▼
+get_pdf_text()
+  → partition_pdf(strategy="hi_res", infer_table_structure=True)
+  → List of Elements [Title, NarrativeText, Table, ...]
+         │
+         ▼
+get_text_chunks()
+  → chunk_by_title(max_characters=3000, new_after_n_chars=2000)
+  → List of Chunk objects (each with .text and .metadata)
+         │
+         ▼
+get_vectorstore()
+  ├─ Decrypt API key (Machine_A.decrypt_message)
+  ├─ Extract text strings from chunks
+  ├─ POST /embeddings → BGE-M3 API → List of 1024-dim vectors
+  ├─ np.array(embeddings) → shape (n_chunks, 1024)
+  ├─ faiss.IndexFlatL2(1024) → index.add(embeddings)
+  └─ return (index, texts)
+         │
+         ▼
+st.session_state.conversation = index
+st.session_state.text = texts
+         │
+         ▼
+save_analysis_to_db()
+  ├─ faiss.serialize_index(index) → bytes
+  ├─ json.dumps(texts) → gzip.compress → bytes
+  └─ INSERT OR REPLACE INTO pdf_analysis (...)</pre>
+
+<h2>4.2 Query Flow (User Question)</h2>
+<pre>User types question + clicks Submit
+         │
+         ▼
+handle_userinput(user_question)
+  ├─ Guard: session state must have conversation
+  ├─ Truncate question to 70 words if needed
+  ├─ Append {'role': 'user', 'content': question} to chat_history
+  ├─ count_tokens(question + all history)
+  ├─ IF total_tokens &lt; 512: proceed directly
+  │   ELSE: truncate_chat_history_() then proceed
+  ▼
+Embedd_user_question(question)
+  ├─ Decrypt API key
+  ├─ POST /embeddings → BGE-M3 → 1024-dim vector
+  └─ return np.array([[...]]) shape (1, 1024)
+         │
+         ▼
+FAISS search across all indexes:
+  for index in conversation:
+      distances, indices = index.search(query_embedding, k=5)
+  → collect (text, distance) pairs from all indexes
+  → sort all pairs by distance (ascending = most similar first)
+  → keep top_k_responses[:5]
+         │
+         ▼
+get_conversation_chain_faiss(question, top_k_responses)
+  ├─ Decrypt LLM API key
+  ├─ Build prompt: question + top-5 chunks with distances
+  ├─ POST to Mistral-7B-Instruct (temperature=0.1, max_tokens=1024)
+  ├─ Extract response text
+  └─ Append {'role': 'Siemens', 'content': response} to chat_history
+         │
+         ▼
+display_chat_history()
+  → render user messages with user_template HTML
+  → render bot messages with bot_template HTML</pre>
+
+<!-- SECTION 5 -->
+<h1>5. Component Deep-Dives</h1>
+
+<h2>5.1 PDF Ingestion &amp; Intelligent Chunking</h2>
+<p><code>partition_pdf</code> with <code>hi_res</code> strategy processes PDFs internally by calling <code>pdf2image</code> (which depends on Poppler) to rasterise each page at high DPI, running a layout detection model to identify regions (text blocks, tables, images, headers/footers), applying OCR if needed, and returning typed <code>Element</code> objects with metadata. The result is far richer than simple text extraction — it preserves the semantic role of each piece of content.</p>
+<p>Title-based chunking groups elements hierarchically: a chunk starts at a <code>Title</code> element and includes all subsequent non-title elements until the next <code>Title</code> (or the max character limit). This mirrors how humans naturally segment documents and produces contextually self-contained chunks.</p>
+<p>Table handling is noteworthy: tables are detected as <code>Table</code> elements with their cell content. The <code>convert_table_to_text</code> function reformats them using pipe (<code>|</code>) delimiters, making them readable as prose when embedded — a garbled tab-separated table would produce a poor-quality embedding.</p>
+
+<h2>5.2 Embedding Generation — EmbeddingApiRunnable</h2>
+<p>BGE-M3 (BAAI General Embedding, version M3) produces dense retrieval embeddings of dimensionality 1024. Key properties:</p>
+<ul>
+  <li>Multilingual (100+ languages), suitable for technical documents in German, English, or mixed.</li>
+  <li>Optimised for symmetric retrieval — both documents and queries use the same embedding space.</li>
+  <li>Outperforms older models like <code>text-embedding-ada-002</code> on many retrieval benchmarks.</li>
+  <li>Follows the OpenAI embeddings API format (<code>/v1/embeddings</code>, <code>model</code> field, <code>data[].embedding</code> response), making it interchangeable.</li>
+</ul>
+
+<h2>5.3 FAISS Vector Store</h2>
+<p><code>faiss.IndexFlatL2</code> implements exact nearest-neighbour search:</p>
+<ul>
+  <li><strong>Storage:</strong> All n vectors of dimension d=1024 are stored as a flat matrix of <code>float32</code> values in memory. For 500 chunks × 1024 dimensions × 4 bytes = ~2 MB, trivially small.</li>
+  <li><strong>Search complexity:</strong> O(n·d) per query — every stored vector is compared to the query. Always finds the true nearest neighbours.</li>
+  <li><strong>Serialization:</strong> <code>faiss.serialize_index</code> encodes the complete index to a byte array. <code>faiss.deserialize_index</code> reconstructs it perfectly, enabling lossless persistence to SQLite.</li>
+</ul>
+<p>L2 distance (Euclidean distance squared) is computed as:</p>
+<pre>d(q, v) = Σ (q_i - v_i)²</pre>
+<p>Smaller distance = more similar. The top-5 retrievals with the lowest L2 distances are the most relevant chunks.</p>
+
+<h2>5.4 Persistent Storage — SQLite Database Layer</h2>
+<p>The SQLite schema provides a complete key-value store mapping PDF filenames to their processed artefacts:</p>
+<pre>pdf_analysis
+├── filename     → TEXT (primary key, lookup by name)
+├── analysis     → TEXT (future: LLM summary of the document)
+├── chunked_text → BLOB (gzip-compressed JSON list of text strings)
+└── vectorstore  → BLOB (raw serialised FAISS index)</pre>
+<p><strong>Compression rationale:</strong> JSON text chunks for a 100-page document might be 500 KB; gzip typically achieves 60–80% compression on English text, bringing this down to ~100–200 KB.</p>
+<p><strong>Multiple databases:</strong> The system supports multiple <code>.db</code> files (one per project, manual set, or department). The user selects which database to work with from a dropdown, making this a simple multi-tenant knowledge base system.</p>
+
+<h2>5.5 Query Pipeline — Retrieval &amp; Generation</h2>
+<p>The RAG query pipeline implements the classic <strong>Dense Passage Retrieval + Reader</strong> architecture:</p>
+<ol>
+  <li><strong>Retrieval stage:</strong> The query is embedded into the same vector space as the document chunks. FAISS finds the k=5 most similar chunks by L2 distance.</li>
+  <li><strong>Reader stage:</strong> The LLM receives a structured prompt containing both the query and the top-5 retrieved passages and generates a synthesised answer.</li>
+</ol>
+<p>The key insight is that the LLM does <strong>not</strong> need to "know" the answer from its training data — it reads the answer from the retrieved context. This makes the system <strong>factually grounded</strong> in the provided documents and reduces hallucination.</p>
+<p><strong>Cross-document retrieval:</strong> When multiple FAISS indexes exist in the session, the search is performed against all indexes. Results are pooled and globally re-ranked by distance, so the final top-5 always contains the most relevant chunks regardless of which document they came from.</p>
+
+<h2>5.6 Token Budget Management</h2>
+<p><strong>Why 512 tokens?</strong> A conservative budget for the combined query + history. Mistral-7B has a 32K token context window, but the prompt template with 5 retrieved chunks at up to 3000 chars each (≈3750 tokens for chunks alone) means keeping the user query + history concise. <code>cl100k_base</code> closely approximates Mistral's SentencePiece tokenizer for English/German technical text.</p>
+<p><strong>Truncation strategy:</strong> FIFO eviction removes oldest messages first — the simplest strategy, preserving recent context at the cost of old context.</p>
+
+<h2>5.7 RSA Encryption for API Key Security</h2>
+<p>The workflow for secure key usage:</p>
+<pre>[Setup time, on Machine A]:
+Machine_A.main() → generate_keys()
+→ private_key.pem (secret, stays on Machine A)
+→ public_key.pem (shared with whoever sets up the .env)
+
+[Provisioning time]:
+ciphertext = RSA_encrypt(api_key, public_key)
+ciphertext_b64 = base64.b64encode(ciphertext)
+→ placed in .env as: API_KEY=&lt;ciphertext_b64&gt;
+
+[Runtime]:
+Machine_A.load_private_key() → private_key (from disk)
+Machine_A.decrypt_message(os.getenv('API_KEY'), private_key) → real_api_key
+→ used once for the API request → discarded</pre>
+<p>Security properties:</p>
+<ul>
+  <li>API keys are <strong>never stored in plaintext</strong> on disk.</li>
+  <li>Even if <code>.env</code> is committed to version control accidentally, the keys remain protected (RSA-2048 + OAEP is computationally infeasible to break).</li>
+  <li>The private key never leaves the machine; so even if the ciphertext is intercepted, it cannot be decrypted without the local private key.</li>
+  <li>API keys are held in memory only for the duration of a single request.</li>
+</ul>
+
+<h2>5.8 UI Layer — Streamlit + Custom HTML/CSS</h2>
+<p>Streamlit provides the web framework. The custom <code>htmlTemplates.py</code> overrides Streamlit's default markdown rendering for chat messages with hand-crafted HTML/CSS that provides:</p>
+<ul>
+  <li>Dark theme with dual shades distinguishing user (<code>#2b313e</code>) from bot (<code>#475063</code>).</li>
+  <li>Circular avatar images using <code>border-radius: 50%</code> and <code>object-fit: cover</code>.</li>
+  <li>Flex layout for avatar + message pairs.</li>
+  <li>Brand identity: The Siemens logo avatar establishes the corporate context of the prototype.</li>
+</ul>
+<p>The <code>{{MSG}}</code> template substitution is a minimal hand-rolled templating system — deliberately simple since only one variable is needed per message.</p>
+
+<!-- SECTION 6 -->
+<h1>6. Security Design</h1>
+<table>
+  <tr><th>Aspect</th><th>Implementation</th></tr>
+  <tr><td>API key storage</td><td>RSA-2048/OAEP encrypted, base64-encoded in <code>.env</code></td></tr>
+  <tr><td>Private key storage</td><td>PEM file on local disk, no passphrase (Machine A only)</td></tr>
+  <tr><td>Key generation</td><td><code>cryptography</code> library (<code>hazmat.primitives</code>) — industry standard</td></tr>
+  <tr><td>Padding scheme</td><td>OAEP with MGF1-SHA256 — CCA2-secure</td></tr>
+  <tr><td>In-transit</td><td>HTTPS (assumed from API URL; enforced by requests library)</td></tr>
+  <tr><td>At-rest (DB)</td><td>SQLite on local filesystem; FAISS blobs are not encrypted</td></tr>
+  <tr><td>Duplicate protection</td><td><code>INSERT OR REPLACE</code> + <code>check_if_present()</code> guard</td></tr>
+</table>
+<p><strong>Threat model covered:</strong> An attacker who gains read access to the <code>.env</code> file cannot retrieve the API keys without also stealing <code>private_key.pem</code>. An attacker who steals only the private key cannot retrieve the API keys without the corresponding <code>.env</code>.</p>
+<p><strong>Gaps / future work:</strong> The SQLite database and FAISS blobs are not encrypted at rest. Sensitive document content is stored in plaintext (gzip-compressed). For a production deployment handling confidential documents, database encryption (e.g., SQLCipher) should be considered.</p>
+
+<!-- SECTION 7 -->
+<h1>7. Design Decisions &amp; Trade-offs</h1>
+<table>
+  <tr><th>Decision</th><th>Choice Made</th><th>Alternative / Trade-off</th></tr>
+  <tr><td>Vector search</td><td>FAISS IndexFlatL2 (exact)</td><td>IVFFlat/IVFPQ would be faster but approximate — precision chosen over speed</td></tr>
+  <tr><td>Embedding model</td><td>BGE-M3 (1024-dim, multilingual)</td><td>ada-002 simpler but OpenAI-dependent; BGE-M3 is self-hostable</td></tr>
+  <tr><td>LLM</td><td>Mistral-7B-Instruct (REST API)</td><td>GPT-4 more capable but proprietary/expensive; Mistral is open-weight</td></tr>
+  <tr><td>PDF parser</td><td>unstructured (hi_res)</td><td>PyPDF2/pdfminer faster but miss tables/layouts</td></tr>
+  <tr><td>Chunking</td><td>chunk_by_title (semantic)</td><td>Fixed-size chunking simpler but semantically arbitrary</td></tr>
+  <tr><td>Persistence</td><td>SQLite</td><td>Chroma/Qdrant more scalable but adds dependencies</td></tr>
+  <tr><td>UI</td><td>Streamlit</td><td>Django/Flask more flexible but require more frontend work</td></tr>
+  <tr><td>Security</td><td>RSA-2048 + custom Machine_A</td><td>HashiCorp Vault / AWS Secrets Manager would be enterprise-grade</td></tr>
+  <tr><td>Chat memory</td><td>Simple list + FIFO truncation</td><td>LangChain Memory modules offer more sophisticated strategies</td></tr>
+</table>
+
+<!-- SECTION 8 -->
+<h1>8. Limitations &amp; Future Work</h1>
+<ol>
+  <li><strong>Single-machine deployment:</strong> The RSA key infrastructure ties the application to one machine. A proper secrets manager would support distributed deployment.</li>
+  <li><strong>No re-ranking:</strong> Results are ranked purely by L2 distance. A cross-encoder re-ranker (like BGE-Reranker) would improve precision by scoring (query, chunk) pairs jointly.</li>
+  <li><strong>No query expansion:</strong> The user's query is embedded as-is. Techniques like HyDE (Hypothetical Document Embeddings) or query reformulation could improve recall.</li>
+  <li><strong>FAISS index not updated incrementally:</strong> Adding a new document creates a separate FAISS index. A merged index or proper vector DB would enable unified search.</li>
+  <li><strong>No source citation:</strong> The UI shows the LLM's answer but does not display which PDF pages the information came from. Adding page/section attribution would improve trustworthiness.</li>
+  <li><strong>Table embeddings:</strong> Tables are converted to pipe-delimited text. Dedicated table embedding models or structured retrieval would handle tabular data better.</li>
+  <li><strong>No authentication:</strong> The Streamlit app has no login mechanism. Any user on the network can access all documents.</li>
+  <li><strong>Flask app is imported but not used:</strong> This is dead code, likely from an earlier architecture where a separate REST API layer was planned.</li>
+</ol>
+
+<!-- SECTION 9 -->
+<h1>9. Dependency Map</h1>
+<pre>ChatBox_complete.py
+├── streamlit              → Web UI framework
+├── unstructured           → PDF ingestion & element-based chunking
+│   ├── partition_pdf      → hi-res PDF parsing (requires Poppler)
+│   └── chunk_by_title     → semantic chunking strategy
+├── faiss                  → Vector similarity search (CPU version)
+├── numpy                  → Numerical array operations for embeddings
+├── tiktoken               → Token counting (cl100k_base encoder)
+├── sqlite3                → Persistent storage (stdlib)
+├── gzip                   → Text compression (stdlib)
+├── json                   → Serialisation (stdlib)
+├── requests               → REST API HTTP calls
+├── python-dotenv          → .env file loading
+├── flask                  → (imported, not actively used)
+├── Machine_A              → RSA decryption for API keys
+│   └── cryptography       → RSA key ops (OAEP/MGF1/SHA256)
+│       └── rich           → Progress spinner UI
+└── htmlTemplates          → Custom HTML/CSS chat templates
+
+External APIs:
+├── BGE-M3 Embedding API   → env: API_EMBEDDING, API_KEY_Embedding (encrypted)
+└── Mistral-7B-Instruct    → env: API_URL, API_KEY (encrypted)
+
+External tools:
+└── Poppler                → PDF rasterisation for hi-res parsing
+    └── path: poppler-25.11.0/Library/bin (added to PATH at runtime)</pre>
+
+<hr style="margin-top:60px; border-color:#aac4e0;">
+<p style="text-align:center; color:#888; font-size:9.5pt; font-style:italic;">End of Documentation — AI ChatBot RAG System<br>Thesis Project &nbsp;·&nbsp; March 2026</p>
+
+</body>
+</html>
