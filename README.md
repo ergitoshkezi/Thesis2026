@@ -1,7 +1,7 @@
 # Thesis2026
 
 
-# Thesis Projects|||  Production Branch-> Log PArser ||| RAG Branch-> ChatBot 
+# Thesis Projects|||  Production Branch-> Log Parser ||| RAG Branch-> ChatBot 
 
 
 
