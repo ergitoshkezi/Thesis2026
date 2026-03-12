@@ -3,7 +3,7 @@
 
 ---
 
-**Student:** [Your Name]  
+**Student:** [Ergi Toshkezi]  
 **Thesis Title:** AI-Powered Document Querying System Using Retrieval-Augmented Generation (RAG)  
 **Academic Year:** 2025/2026  
 **Date:** March 2026  
