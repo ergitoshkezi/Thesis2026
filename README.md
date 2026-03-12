@@ -1,7 +1,8 @@
 # Thesis2026
 
 
-# Thesis Projects — Production Branch-> Log PArser,  RAG Branch-> ChatBot 
+# Thesis Projects|||  Production Branch-> Log PArser ||| RAG Branch-> ChatBot 
+
 
 
 This branch contains two independent but complementary thesis projects built during work at **Siemens**. Both tools are production-ready prototypes designed to assist engineers in working with internal data more efficiently.
