@@ -29,7 +29,7 @@ The **Siemens Transaction Log Parser** is a desktop application that ingests raw
 
 | File | Description |
 |---|---|
-| `Log_Parser_Ultimate.py` | Main GUI application (~3,677 lines) — log viewer, comparison engine, AI integration, XML/JSON pipeline |
+| `Log_Parser_Ultimate.py` | Main GUI application— log viewer, comparison engine, AI integration, XML/JSON pipeline |
 | `Structure_Excel.py` | Batch analysis module (~656 lines) — parses logs and exports `_Overview.xlsx` |
 
 ### Key Features
