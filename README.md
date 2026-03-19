@@ -11,9 +11,9 @@ This branch contains two independent but complementary thesis projects built dur
 
 ## Projects Overview
 
-| Project | Folder | Purpose |
+| Project | Branch | Purpose |
 |---|---|---|
-| 🔍 **Log Parser** | `Log_Parser/` | Parse, visualise, and analyse Siemens transaction logs |
+| 🔍 **Log Parser** | `Production/` | Parse, visualise, and analyse Siemens transaction logs |
 | 🤖 **RAG Chatbot** | `Rag/` | Ask questions about internal PDF documents using AI |
 
 ---
