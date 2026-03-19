@@ -20,7 +20,7 @@ This branch contains two independent but complementary thesis projects built dur
 
 ## 🔍 Project 1 — Log Parser
 
-**Folder:** `Log_Parser/`
+**Branch:** `Production/`
 
 ### What it does
 
@@ -63,7 +63,7 @@ python Structure_Excel.py
 
 ## 🤖 Project 2 — RAG Chatbot
 
-**Folder:** `Rag/`
+**Branch:** `Rag/`
 
 ### What it does
 
